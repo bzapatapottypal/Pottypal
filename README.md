@@ -10,12 +10,12 @@ PottyPal is a mobile application designed to help users locate, review, and rate
 - Real-Time Updates: See real-time updates on restroom availability and user reviews.
 
 # Technologies Used 💻
-- React Native for cross-platform mobile app development (iOS & Android)
+- React Native with Expo for cross-platform mobile app development (iOS & Android)
 - Firebase for backend services including:
     - Authentication (email, Google, Facebook login)
     - Firestore for real-time database
     - Cloud Storage for user-uploaded photos
-- Google Maps API or Mapbox for map integration
+- Google Maps and Mapbox for map integration
 - Redux Toolkit for state management
 
 # Getting Started 🚀
@@ -60,4 +60,4 @@ React Native
 Firebase
 Google Maps API
 Redux Toolkit
-
+Refuge Restrooms
