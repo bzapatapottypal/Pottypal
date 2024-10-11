@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "your-app-scheme",
+    "jsEngine": "hermes",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",

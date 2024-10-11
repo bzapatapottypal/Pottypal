@@ -10,19 +10,23 @@ import DestinationList from '@/src/components/DestinationList';
 export default function MainMap() {
   const [calculatedDistances, setCalculatedDistances] = useState([]);
   const [destination, setDestination] = useState([]);
+  const [currentDest, setCurrentDest] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [location, setLocation] = useState([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true)
-  const [searchADA, setSearchADA] = useState(false) 
-  const [searchUnisex, setSearchUnisex] = useState(false) 
+  const [hasMore, setHasMore] = useState(true);
+  const [searchADA, setSearchADA] = useState(false);
+  const [searchUnisex, setSearchUnisex] = useState(false);
+  const [route, setRoute] = useState([]);
+  const [profile, setProfile] = useState('driving')
+  const [gettingDirections, setGettingDirections] = useState(false)
 
-  Mapbox.setAccessToken('pk.eyJ1Ijoicm9tYW5iZGFzcyIsImEiOiJjbTFrc3BkbDgwMXdlMmpxeHZ6MzljcTYxIn0.QxUaWdfkC3iLToNqBCa1CQ');
+  Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
 
-  const ENDPOINT = "https://www.refugerestrooms.org/api/v1/restrooms";
+  const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
   
   useEffect(() => {
     (async () => {
@@ -39,6 +43,7 @@ export default function MainMap() {
         setHasLocationPermission(true);
       } catch (error) {
         setErrorMsg('Could not get the location. Please try again.');
+        //TODO: ADD RELOAD BUTTON
       } finally {
         setIsLoading(false)
       }
@@ -59,7 +64,7 @@ export default function MainMap() {
     if (location && location.length) {
       //setIsLoading(true);
       try{
-        const response = await fetch(`${ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
+        const response = await fetch(`${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
         const fetchedData = await response.json();
   
         if (fetchedData.length === 0) {
@@ -84,11 +89,27 @@ export default function MainMap() {
     }
   };
   
+  const fetchDirections = async (profile: string , start: any[], end: any[]) => {
+    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+    
+      try {
+        const response = await fetch(url);
+        console.log(url);
+        const json = await response.json();
+        const currentRoute = json.routes[0].geometry.coordinates;
+        setRoute(currentRoute)
+        setGettingDirections(true);
+      } catch (error) {
+        console.error(error);
+        //TODO: add a user visibile error
+      } 
+  }
+
   useEffect(() => {
     if (hasLocationPermission && location) {
       loadMoreDestinations(); 
     }
-  }, [hasLocationPermission, location]); // Depend on both permission and location
+  }, [hasLocationPermission, location]);
 
   if (isLoading) {
     return <ActivityIndicator size="large" />;
@@ -129,16 +150,15 @@ export default function MainMap() {
           />
         </View>
       </View>
-        
-      
       <Map 
         location={location}
         destination={destination}
         cameraLocation={cameraLocation}
         setCameraLocation={setCameraLocation}
+        route={route} 
+        gettingDirections={gettingDirections}
       />
       <View style={styles.overlayContainer}>
-        
         <DestinationList 
           destination={destination}
           location={location}
@@ -146,7 +166,9 @@ export default function MainMap() {
           loadMoreDestinations={loadMoreDestinations}
           searchADA={searchADA}
           searchUnisex={searchUnisex} 
-          handleFilter={handleFilter} />
+          handleFilter={handleFilter}
+          fetchDirections={fetchDirections}
+        />
       </View>
     </View>
   )
@@ -233,5 +255,6 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row'
-  }
+  },
+  
 });

@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   toggleContainer: {
-    flexDirection: 'row'
+    flexDirection: 'row-reverse'
   },
 });
 
