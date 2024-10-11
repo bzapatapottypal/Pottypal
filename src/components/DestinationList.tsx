@@ -3,7 +3,7 @@ import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Activ
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections}) => {
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
@@ -29,6 +29,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           onPress={() => {
             // Update cameraLocation to snap to the clicked destination's coordinates
             setCameraLocation([item.longitude, item.latitude]);
+            fetchDirections('driving', location, [item.longitude, item.latitude]);
           }}
         >
           {/*TODO: Add images of places*/}
@@ -54,6 +55,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       </View>
     );
   };
+  
 
   return (
     <FlatList

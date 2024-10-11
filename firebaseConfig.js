@@ -1,22 +1,16 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from "firebase/auth";
-
-// Optionally import the services that you want to use
-// import {...} from "firebase/auth";
-// import {...} from "firebase/database";
-// import {...} from "firebase/firestore";
-// import {...} from "firebase/functions";
-// import {...} from "firebase/storage";
+import { getAuth } from 'firebase/auth';
+import { getFirestore, setDoc, updateDoc} from 'firebase/firestore'
 
 
 // Initialize Firebase
 const firebaseConfig = {
-  apiKey: 'AIzaSyAUd4Fhun400LVelLFSjQxPa1mhyVQfsjM',
-  authDomain: "test-fireabse-600bb.firebaseapp.com",
-  projectId: "test-fireabse-600bb",
-  storageBucket: "test-fireabse-600bb.appspot.com",
-  messagingSenderId: "785998053190",
-  appId: "1:785998053190:web:edff3bb11109d1b5756f47"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
@@ -29,3 +23,22 @@ const auth = getAuth(app);
 
 export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
+export const FIREBASE_FIRESTORE = getFirestore(FIREBASE_APP)
+
+
+//boilerplate firestore
+/*
+const testDocument = doc(firestore, 'test-path-to-document/testdocument')
+function writeTestDocument() {
+  const testData = {
+    description: 'parameter',
+    number: 1212343,
+    boolean: true,
+    review: 'balhblahhblah'
+  }
+  updateDoc(testDocument, testData, { merge: true })
+}
+console.log('firestore')
+
+*/
+
