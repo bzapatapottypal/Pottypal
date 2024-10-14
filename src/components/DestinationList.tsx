@@ -3,7 +3,8 @@ import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Activ
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections}) => {
+
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds}) => {
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
@@ -29,7 +30,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           onPress={() => {
             // Update cameraLocation to snap to the clicked destination's coordinates
             setCameraLocation([item.longitude, item.latitude]);
-            //fetchDirections('driving', location, [item.longitude, item.latitude]);
           }}
         >
           {/*TODO: Add images of places*/}
@@ -54,18 +54,18 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           <Pressable 
             onPress={() => {
               fetchDirections('driving', location, [item.longitude, item.latitude]);
-              setCameraLocation([item.longitude, item.latitude]);
+              //setCameraLocation([item.longitude, item.latitude]);
+              fitCameraBounds(location, [item.longitude, item.latitude]);
             }}
             style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
           >
-            <Text style={{fontSize: 16, padding: 10}}>Directions</Text>
+            <Text style={{fontSize: 16, padding: 10, color: 'white'}}>Directions</Text>
           </Pressable>
         </TouchableOpacity>
       </View>
     );
   };
   
-
   return (
     <FlatList
       data={filteredDestinations}

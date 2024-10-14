@@ -1,27 +1,30 @@
-import React from 'react'
-import Mapbox from '@rnmapbox/maps';
+import React, { useEffect, useRef } from 'react'
+import Mapbox, { Camera } from '@rnmapbox/maps';
 import { View } from 'react-native';
 
-const Map = ({location, destination, cameraLocation, setCameraLocation, route, gettingDirections}) => {
-
+const Map = ({location, destination, cameraLocation, setCameraLocation, route, gettingDirections, camera}) => {
+  
   return(
     <Mapbox.MapView style={{flex: 1}}>
-        <Mapbox.Camera 
-            centerCoordinate= {cameraLocation}
-            zoomLevel= {15}
-            animationMode={'flyTo'} // Smooth camera movement
-            animationDuration={2000} // Duration of the camera snap
+        <Camera 
+          centerCoordinate= {cameraLocation}
+          zoomLevel= {10}
+          followZoomLevel= {15}
+          animationMode= {'flyTo'} // Smooth camera movement
+          animationDuration= {2000} // Duration of the camera snap
+          followUserLocation= {false}
+          ref={camera}
         />
         {gettingDirections && (
           <Mapbox.ShapeSource id="routeSource" shape={{type: 'LineString', coordinates: route}}>
-              <Mapbox.LineLayer id="routeLine" />
+              <Mapbox.LineLayer id="routeLine" style={{lineColor: '#4681f4', lineWidth: 4, lineCap: 'round', lineOpacity: 1}} />
           </Mapbox.ShapeSource>
         )}
           <Mapbox.PointAnnotation
             id='current location'
             coordinate={location}
           >
-            <View style={{ height: 30, width: 30, backgroundColor: 'blue', borderRadius: 15, borderColor: 'white', borderWidth: 2 }} />
+            <View style={{ height: 30, width: 30, backgroundColor: 'blue', borderRadius: 15, borderColor: 'white', borderWidth: 2}} />
             <Mapbox.Callout title="You are here!" /> 
           </Mapbox.PointAnnotation>
         {/* create pointers for current results */}

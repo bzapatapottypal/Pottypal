@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Text, View, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput, Image, FlatList, TouchableHighlight } from 'react-native';
 import { Feather, Entypo } from "@expo/vector-icons";
 import * as Location from 'expo-location';
@@ -19,8 +19,10 @@ export default function MainMap() {
   const [searchADA, setSearchADA] = useState(false);
   const [searchUnisex, setSearchUnisex] = useState(false);
   const [route, setRoute] = useState([]);
-  const [profile, setProfile] = useState('driving')
-  const [gettingDirections, setGettingDirections] = useState(false)
+  const [profile, setProfile] = useState('driving');
+  const [gettingDirections, setGettingDirections] = useState(false);
+  const camera = useRef(null);
+  
 
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
 
@@ -49,6 +51,7 @@ export default function MainMap() {
     })();
   }, []);
 
+
   useEffect(() => {
     if (hasLocationPermission && location) {
       loadMoreDestinations(); 
@@ -63,6 +66,12 @@ export default function MainMap() {
     }
   };
 
+  const fitCameraBounds = (start, end) => {
+    setCameraLocation(start);
+    camera.current?.fitBounds(start, end, [40, 40], 2000);
+    //TODO: Encompass map pointer in zoom out
+  }
+  
   //TODO: add error handling if the api comes up with a undefined result
   //TODO: make the transition for filters removing and adding items smoother
   const loadMoreDestinations = async () => {
@@ -154,6 +163,7 @@ export default function MainMap() {
         setCameraLocation={setCameraLocation}
         route={route} 
         gettingDirections={gettingDirections}
+        camera={camera}
       />
       <View style={styles.overlayContainer}>
         <DestinationList 
@@ -162,9 +172,10 @@ export default function MainMap() {
           setCameraLocation={setCameraLocation}
           loadMoreDestinations={loadMoreDestinations}
           searchADA={searchADA}
-          searchUnisex={searchUnisex} 
+          searchUnisex={searchUnisex}
           handleFilter={handleFilter}
           fetchDirections={fetchDirections}
+          fitCameraBounds={fitCameraBounds}
         />
       </View>
     </View>
