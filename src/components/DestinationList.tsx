@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, FlatList, Pressable } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 
@@ -29,7 +29,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           onPress={() => {
             // Update cameraLocation to snap to the clicked destination's coordinates
             setCameraLocation([item.longitude, item.latitude]);
-            fetchDirections('driving', location, [item.longitude, item.latitude]);
+            //fetchDirections('driving', location, [item.longitude, item.latitude]);
           }}
         >
           {/*TODO: Add images of places*/}
@@ -51,6 +51,15 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           </View>
           <Text style={styles.line}>Comment: {item.comment}</Text>
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
+          <Pressable 
+            onPress={() => {
+              fetchDirections('driving', location, [item.longitude, item.latitude]);
+              setCameraLocation([item.longitude, item.latitude]);
+            }}
+            style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
+          >
+            <Text style={{fontSize: 16, padding: 10}}>Directions</Text>
+          </Pressable>
         </TouchableOpacity>
       </View>
     );
