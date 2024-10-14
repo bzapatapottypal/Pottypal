@@ -8,9 +8,7 @@ import Map from '@/src/components/Map'
 import DestinationList from '@/src/components/DestinationList';
 
 export default function MainMap() {
-  const [calculatedDistances, setCalculatedDistances] = useState([]);
   const [destination, setDestination] = useState([]);
-  const [currentDest, setCurrentDest] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [location, setLocation] = useState([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -36,6 +34,7 @@ export default function MainMap() {
         return;
       } try {
         let location = await Location.getCurrentPositionAsync({});
+        console.log(location)
         const coords = [location.coords.longitude, location.coords.latitude]
         setLocation(coords);
         setCameraLocation(coords);
@@ -50,6 +49,12 @@ export default function MainMap() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (hasLocationPermission && location) {
+      loadMoreDestinations(); 
+    }
+  }, [hasLocationPermission, location]);
+
   const handleFilter = (filter: string) => {
     if(filter === 'ADA') {
       setSearchADA(!searchADA)
@@ -62,11 +67,9 @@ export default function MainMap() {
   //TODO: make the transition for filters removing and adding items smoother
   const loadMoreDestinations = async () => {
     if (location && location.length) {
-      //setIsLoading(true);
       try{
         const response = await fetch(`${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
         const fetchedData = await response.json();
-  
         if (fetchedData.length === 0) {
           setHasMore(false); // No more data to load
         } else {
@@ -90,12 +93,12 @@ export default function MainMap() {
   };
   
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
-    
+    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+    console.log(url)
       try {
         const response = await fetch(url);
-        console.log(url);
         const json = await response.json();
+        console.log(json)
         const currentRoute = json.routes[0].geometry.coordinates;
         setRoute(currentRoute)
         setGettingDirections(true);
@@ -104,12 +107,6 @@ export default function MainMap() {
         //TODO: add a user visibile error
       } 
   }
-
-  useEffect(() => {
-    if (hasLocationPermission && location) {
-      loadMoreDestinations(); 
-    }
-  }, [hasLocationPermission, location]);
 
   if (isLoading) {
     return <ActivityIndicator size="large" />;
