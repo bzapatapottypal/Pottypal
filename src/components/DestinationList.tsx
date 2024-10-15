@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, FlatList, Pressable } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds}) => {
+  const bottomSheetRef = useRef(null);
+  
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
@@ -28,7 +31,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         <TouchableOpacity
           key={destination.id}
           onPress={() => {
-            // Update cameraLocation to snap to the clicked destination's coordinates
             setCameraLocation([item.longitude, item.latitude]);
           }}
         >
@@ -54,7 +56,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           <Pressable 
             onPress={() => {
               fetchDirections('driving', location, [item.longitude, item.latitude]);
-              //setCameraLocation([item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
             }}
             style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
@@ -65,27 +66,46 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       </View>
     );
   };
-  
-  return (
-    <FlatList
-      data={filteredDestinations}
-      keyExtractor={(item) => item.id.toString()}
-      renderItem={renderDestination}
-      onEndReached={loadMoreDestinations}
-      onEndReachedThreshold={0.5}
-      ListFooterComponent={<ActivityIndicator />}
-      ListHeaderComponent={
-        <SearchFilters
-          handleFilter={handleFilter}
-          searchADA={searchADA}
-          searchUnisex={searchUnisex}
-        />
-      }
-    />
-  );
+  return(
+    <BottomSheet
+      ref={bottomSheetRef}
+      snapPoints={[450, 300]}
+      index={1}
+      enablePanDownToClose={true}
+      backgroundStyle={{backgroundColor: 'rgba(255, 255, 255, 0.9)'}}
+      animateOnMount={true}
+      style={{
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: -2 },
+        shadowRadius: 10,
+        elevation: 5, // For Android shadow
+      }}
+    >
+      <BottomSheetFlatList
+        data={filteredDestinations}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderDestination}
+        onEndReached={loadMoreDestinations}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ActivityIndicator />}
+        ListHeaderComponent={
+          <SearchFilters
+            handleFilter={handleFilter}
+            searchADA={searchADA}
+            searchUnisex={searchUnisex}
+          />
+        }
+      />
+    </BottomSheet>
+  )
 };
 
 const styles = StyleSheet.create({
+  
   resultContainer: {
     padding: 16,
     marginVertical: 10,

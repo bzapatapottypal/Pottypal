@@ -6,6 +6,7 @@ import Mapbox, { Camera, PointAnnotation } from '@rnmapbox/maps';
 import * as turf from '@turf/turf'
 import Map from '@/src/components/Map'
 import DestinationList from '@/src/components/DestinationList';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function MainMap() {
   const [destination, setDestination] = useState([]);
@@ -141,9 +142,9 @@ export default function MainMap() {
   }
 
   return(
-    <View style={styles.container}> 
+    <GestureHandlerRootView style={styles.container}> 
       <View style={{backgroundColor: '#FFF', padding: 10}}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 10, backgroundColor: '#DDD', borderRadius: 40 }}>
+        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 10, backgroundColor: '#DDD', borderRadius: 40 }}>
           <Feather 
             name="search"
             size={20}
@@ -154,7 +155,7 @@ export default function MainMap() {
             style={{ flex: 1, padding: 10 }}
             placeholder="Search..."
           />
-        </View>
+        </TouchableOpacity>
       </View>
       <Map 
         location={location}
@@ -165,47 +166,24 @@ export default function MainMap() {
         gettingDirections={gettingDirections}
         camera={camera}
       />
-      <View style={styles.overlayContainer}>
-        <DestinationList 
-          destination={destination}
-          location={location}
-          setCameraLocation={setCameraLocation}
-          loadMoreDestinations={loadMoreDestinations}
-          searchADA={searchADA}
-          searchUnisex={searchUnisex}
-          handleFilter={handleFilter}
-          fetchDirections={fetchDirections}
-          fitCameraBounds={fitCameraBounds}
-        />
-      </View>
-    </View>
+      <DestinationList 
+        destination={destination}
+        location={location}
+        setCameraLocation={setCameraLocation}
+        loadMoreDestinations={loadMoreDestinations}
+        searchADA={searchADA}
+        searchUnisex={searchUnisex}
+        handleFilter={handleFilter}
+        fetchDirections={fetchDirections}
+        fitCameraBounds={fitCameraBounds}
+      />
+    </GestureHandlerRootView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  searchContainer: {
-    
-  },
-  searchBar: {
-  },
-  overlayContainer: {
-    position: 'absolute', // Absolute positioning to overlay the map
-    bottom: 0, // Pin to the bottom of the screen
-    left: 0,
-    right: 0,
-    height: Dimensions.get('window').height * 0.4, // Height of the overlay (40% of screen)
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent white background
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: -2 },
-    shadowRadius: 10,
-    elevation: 5, // For Android shadow
   },
   resultContainer: {
     padding: 16,
