@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput, Image, FlatList, TouchableHighlight } from 'react-native';
+import { Text, View, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput, Image, FlatList, TouchableHighlight, Animated } from 'react-native';
 import { Feather, Entypo } from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import Mapbox, { Camera, PointAnnotation } from '@rnmapbox/maps';
@@ -119,6 +119,7 @@ export default function MainMap() {
         return
       } finally {
         setBannerLoading(false);
+        
       }
   }
 
@@ -253,7 +254,4 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row'
   },
-  bannerInstructions: {
-    
-  }
 });
