@@ -7,6 +7,7 @@ import * as turf from '@turf/turf'
 import Map from '@/src/components/Map'
 import DestinationList from '@/src/components/DestinationList';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BannerInst from '@/src/components/BannerInst'
 
 export default function MainMap() {
   const [destination, setDestination] = useState([]);
@@ -22,9 +23,11 @@ export default function MainMap() {
   const [route, setRoute] = useState([]);
   const [profile, setProfile] = useState('driving');
   const [gettingDirections, setGettingDirections] = useState(false);
+  const [mapBoxJson, setMapBoxJson] = useState(null)
+  const [bannerLoading, setBannerLoading] = useState(true)
+
   const camera = useRef(null);
   
-
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
 
   const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
@@ -94,8 +97,6 @@ export default function MainMap() {
         } 
       } catch(error) {
         console.error('Error fetching data:', error);
-      } finally {
-        //setIsLoading(false);
       }
     } else {
       console.log('Location is not set or undefined, cannot load destinations.');
@@ -104,18 +105,21 @@ export default function MainMap() {
   
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
     const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+    setBannerLoading(true);
     console.log(url)
       try {
         const response = await fetch(url);
         const json = await response.json();
-        console.log(json)
-        const currentRoute = json.routes[0].geometry.coordinates;
-        setRoute(currentRoute)
+        setMapBoxJson(json);
+        setRoute(json.routes[0].geometry.coordinates);
         setGettingDirections(true);
       } catch (error) {
         console.error(error);
         //TODO: add a user visibile error
-      } 
+        return
+      } finally {
+        setBannerLoading(false);
+      }
   }
 
   if (isLoading) {
@@ -143,8 +147,18 @@ export default function MainMap() {
 
   return(
     <GestureHandlerRootView style={styles.container}> 
-      <View style={{backgroundColor: '#FFF', padding: 10}}>
-        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 10, backgroundColor: '#DDD', borderRadius: 40 }}>
+      <View style={{
+        backgroundColor: '#FFF', 
+        padding: 10
+      }}>
+        <TouchableOpacity style={{ 
+          flexDirection: 'row', 
+          alignItems: 'center', 
+          paddingVertical: 0, 
+          paddingHorizontal: 10, 
+          backgroundColor: '#DDD', 
+          borderRadius: 40 
+        }}>
           <Feather 
             name="search"
             size={20}
@@ -152,11 +166,18 @@ export default function MainMap() {
             style={{ marginRight: 10 }}
           />
           <TextInput 
-            style={{ flex: 1, padding: 10 }}
+            style={{ 
+              flex: 1, 
+              padding: 10 
+            }}
             placeholder="Search..."
           />
         </TouchableOpacity>
       </View>
+      <BannerInst 
+        mapBoxJson={mapBoxJson}
+        bannerLoading={bannerLoading}
+      />
       <Map 
         location={location}
         destination={destination}
@@ -184,16 +205,6 @@ export default function MainMap() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  resultContainer: {
-    padding: 16,
-    marginVertical: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
   resultName: {
     fontSize: 18,
@@ -242,5 +253,7 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row'
   },
-  
+  bannerInstructions: {
+    
+  }
 });

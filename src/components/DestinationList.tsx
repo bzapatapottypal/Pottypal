@@ -69,9 +69,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   return(
     <BottomSheet
       ref={bottomSheetRef}
-      snapPoints={[450, 300]}
+      snapPoints={[450, 300, 30]}
       index={1}
-      enablePanDownToClose={true}
+      enablePanDownToClose={false}
       backgroundStyle={{backgroundColor: 'rgba(255, 255, 255, 0.9)'}}
       animateOnMount={true}
       style={{
@@ -105,7 +105,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
 };
 
 const styles = StyleSheet.create({
-  
   resultContainer: {
     padding: 16,
     marginVertical: 10,
