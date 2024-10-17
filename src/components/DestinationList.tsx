@@ -21,7 +21,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
 
     if (!item.latitude || !item.longitude) {
       console.error(`Missing coordinates for destination ID: ${item.id}`, item);
-      return null; // Skip rendering this item if coordinates are missing
+      return null;
     }
 
     const calculatedDistance = turf.distance(to, from, options);

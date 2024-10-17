@@ -23,8 +23,9 @@ export default function MainMap() {
   const [route, setRoute] = useState([]);
   const [profile, setProfile] = useState('driving');
   const [gettingDirections, setGettingDirections] = useState(false);
-  const [mapBoxJson, setMapBoxJson] = useState(null)
-  const [bannerLoading, setBannerLoading] = useState(true)
+  const [mapBoxJson, setMapBoxJson] = useState(null);
+  const [bannerLoading, setBannerLoading] = useState(true);
+  const [directionsError,setDirectionsError] = useState(null)
 
   const camera = useRef(null);
   
@@ -32,29 +33,29 @@ export default function MainMap() {
 
   const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
   
+  //TODO: reload on location change
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('This app needs location permissions. Please enable in the settings.');
-        return;
-      } try {
+        setHasLocationPermission(false)
+      }
+      try {
         let location = await Location.getCurrentPositionAsync({});
-        console.log(location)
         const coords = [location.coords.longitude, location.coords.latitude]
         setLocation(coords);
         setCameraLocation(coords);
         console.log(coords)
-        setHasLocationPermission(true);
+        setHasLocationPermission(true)
       } catch (error) {
         setErrorMsg('Could not get the location. Please try again.');
-        //TODO: ADD RELOAD BUTTON
+        console.log(errorMsg)
       } finally {
         setIsLoading(false)
       }
     })();
   }, []);
-
 
   useEffect(() => {
     if (hasLocationPermission && location) {
@@ -82,7 +83,7 @@ export default function MainMap() {
     if (location && location.length) {
       try{
         const response = await fetch(`${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
-        const fetchedData = await response.json();
+        const fetchedData = await response.json(); 
         if (fetchedData.length === 0) {
           setHasMore(false); // No more data to load
         } else {
@@ -113,13 +114,13 @@ export default function MainMap() {
         setMapBoxJson(json);
         setRoute(json.routes[0].geometry.coordinates);
         setGettingDirections(true);
+        setDirectionsError(null)
       } catch (error) {
         console.error(error);
-        //TODO: add a user visibile error
+        setDirectionsError(error)
         return
       } finally {
         setBannerLoading(false);
-        
       }
   }
 
@@ -137,7 +138,6 @@ export default function MainMap() {
       </View>
     )
   }
-
   if (!location) {
     return (
       <View style={styles.container}>
@@ -178,6 +178,7 @@ export default function MainMap() {
       <BannerInst 
         mapBoxJson={mapBoxJson}
         bannerLoading={bannerLoading}
+        directionsError={directionsError}
       />
       <Map 
         location={location}

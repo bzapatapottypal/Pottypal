@@ -1,7 +1,7 @@
 import React from "react";
 import { FlatList, Text, View, StyleSheet } from "react-native";
 
-const BannerInst = ({mapBoxJson, bannerLoading}) => {
+const BannerInst = ({mapBoxJson, bannerLoading, directionsError}) => {
   if(bannerLoading) {
     return (
       <View style={styles.dropdown}>
@@ -9,7 +9,7 @@ const BannerInst = ({mapBoxJson, bannerLoading}) => {
       </View>
     )
   }
-  if (mapBoxJson === null) {
+  if (mapBoxJson === null || directionsError) {
     console.log(mapBoxJson.length)
     return(
       <View style={styles.dropdown}>
