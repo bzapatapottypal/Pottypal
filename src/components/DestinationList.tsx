@@ -5,7 +5,7 @@ import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds,}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setShowBanner}) => {
   const bottomSheetRef = useRef(null);
   
   const filteredDestinations = destination.filter(item => {
@@ -57,6 +57,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             onPress={() => {
               fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
+              setShowBanner(true);
             }}
             style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
           >

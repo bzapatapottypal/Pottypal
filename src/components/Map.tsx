@@ -17,7 +17,7 @@ const Map = ({location, destination, cameraLocation, setCameraLocation, route, g
         />
         {gettingDirections && (
           <Mapbox.ShapeSource id="routeSource" shape={{type: 'LineString', coordinates: route}}>
-              <Mapbox.LineLayer id="routeLine" style={{lineColor: '#4681f4', lineWidth: 4, lineCap: 'round', lineOpacity: 1}} />
+              <Mapbox.LineLayer id="routeLine" style={{lineColor: '#4681f4', lineWidth: 6, lineCap: 'round', lineOpacity: 1}} />
           </Mapbox.ShapeSource>
         )}
           <Mapbox.PointAnnotation

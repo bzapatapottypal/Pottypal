@@ -25,6 +25,7 @@ export default function MainMap() {
   const [gettingDirections, setGettingDirections] = useState(false);
   const [mapBoxJson, setMapBoxJson] = useState(null)
   const [bannerLoading, setBannerLoading] = useState(true)
+  const [showBanner, setShowBanner] = useState(true)
 
   const camera = useRef(null);
   
@@ -180,6 +181,8 @@ export default function MainMap() {
       <BannerInst 
         mapBoxJson={mapBoxJson}
         bannerLoading={bannerLoading}
+        showBanner={showBanner}
+        setShowBanner={setShowBanner}
       />
       <Map 
         location={location}
@@ -200,6 +203,7 @@ export default function MainMap() {
         handleFilter={handleFilter}
         fetchDirections={fetchDirections}
         fitCameraBounds={fitCameraBounds}
+        setShowBanner={setShowBanner}
       />
     </GestureHandlerRootView>
   )
