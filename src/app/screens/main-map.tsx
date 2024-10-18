@@ -83,6 +83,9 @@ export default function MainMap() {
       try{
         const response = await fetch(`${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
         const fetchedData = await response.json();
+        if (fetchedData === '') {
+          console.log('empty array')
+        }
         if (fetchedData.length === 0) {
           setHasMore(false); // No more data to load
         } else {
@@ -99,7 +102,7 @@ export default function MainMap() {
         console.error('Error fetching data:', error);
       }
     } else {
-      console.log('Location is not set or undefined, cannot load destinations.');
+      console.log('Location is not set, cannot load destinations.');
     }
   };
   
@@ -119,7 +122,6 @@ export default function MainMap() {
         return
       } finally {
         setBannerLoading(false);
-        
       }
   }
 
@@ -152,7 +154,7 @@ export default function MainMap() {
         backgroundColor: '#FFF', 
         padding: 10
       }}>
-        <TouchableOpacity style={{ 
+        <TouchableOpacity style={{
           flexDirection: 'row', 
           alignItems: 'center', 
           paddingVertical: 0, 

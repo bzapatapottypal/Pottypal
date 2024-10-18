@@ -5,7 +5,7 @@ import { View } from 'react-native';
 const Map = ({location, destination, cameraLocation, setCameraLocation, route, gettingDirections, camera}) => {
   
   return(
-    <Mapbox.MapView style={{flex: 1}}>
+    <Mapbox.MapView style={{flex: 1, zIndex: -1}}>
         <Camera 
           centerCoordinate= {cameraLocation}
           zoomLevel= {10}
