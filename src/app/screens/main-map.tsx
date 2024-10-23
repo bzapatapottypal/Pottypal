@@ -3,16 +3,17 @@ import { Text, View, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Pres
 import { Feather, Entypo } from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import Mapbox, { Camera, PointAnnotation } from '@rnmapbox/maps';
-import * as turf from '@turf/turf'
-import Map from '@/src/components/Map'
+import * as turf from '@turf/turf';
+import Map from '@/src/components/Map';
 import DestinationList from '@/src/components/DestinationList';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BannerInst from '@/src/components/BannerInst'
+import BannerInst from '@/src/components/BannerInst';
+import * as Speech from 'expo-speech'
 
 export default function MainMap() {
   const [destination, setDestination] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [location, setLocation] = useState([]);
+  const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
@@ -27,6 +28,7 @@ export default function MainMap() {
   const [bannerLoading, setBannerLoading] = useState(true)
   const [showBanner, setShowBanner] = useState(true)
 
+  const [stepIndex, setStepIndex] = useState(0)
   const camera = useRef(null);
   
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
@@ -34,34 +36,66 @@ export default function MainMap() {
   const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
   
   useEffect(() => {
+    let subscription
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('This app needs location permissions. Please enable in the settings.');
         return;
       } try {
-        let location = await Location.getCurrentPositionAsync({});
-        console.log(location)
-        const coords = [location.coords.longitude, location.coords.latitude]
-        setLocation(coords);
-        setCameraLocation(coords);
-        console.log(coords)
-        setHasLocationPermission(true);
+        subscription = await Location.watchPositionAsync(
+          { 
+            accuracy: Location.Accuracy.High, 
+            timeInterval: 6000, 
+            distanceInterval: 20 
+          },
+          handleUserLocationUpdate
+        );
       } catch (error) {
         setErrorMsg('Could not get the location. Please try again.');
         //TODO: ADD RELOAD BUTTON
       } finally {
         setIsLoading(false)
       }
+      return () => subscription.remove();
     })();
-  }, []);
-
+  }, [])
 
   useEffect(() => {
     if (hasLocationPermission && location) {
       loadMoreDestinations(); 
     }
   }, [hasLocationPermission, location]);
+
+  useEffect(() => {
+    if(!mapBoxJson){
+      return
+    }
+    let steps = mapBoxJson.routes[0].legs[0].steps
+    let currentStep = steps[stepIndex];
+    let maneuverCoords = currentStep.maneuver.location;
+    if (!steps || steps.length === 0) {
+      console.log('No steps available');
+      return;
+    };
+    if(stepIndex === 0) {
+      initialDirection(currentStep);
+    }
+    if(currentStep.maneuver === "arrive") {
+      console.log('arrive')
+    }
+    if(stepIndex > 0 && isCloseToManeuver(location, maneuverCoords)) {
+      //console.log('location is at maneuver');
+      Speech.speak(currentStep.maneuver.instruction);
+      setStepIndex(prevStep => prevStep + 1);
+    }
+  }, [stepIndex, mapBoxJson, location]);
+
+  const initialDirection = (currentStep: number) => {
+    setStepIndex(1);
+    Speech.speak(currentStep.maneuver.instruction)
+    //console.log('bigger than zero')
+  }
 
   const handleFilter = (filter: string) => {
     if(filter === 'ADA') {
@@ -88,16 +122,15 @@ export default function MainMap() {
           console.log('empty array')
         }
         if (fetchedData.length === 0) {
-          setHasMore(false); // No more data to load
+          setHasMore(false);
         } else {
-          // Append new data to current destinations
           setDestination((prevDestinations) => {
             const newDestinations = fetchedData.filter(newDest => 
               !prevDestinations.some(prevDest => prevDest.id === newDest.id)
             );
             return [...prevDestinations, ...newDestinations];
           });
-          setPage(page + 1);
+          setPage(prevPage => prevPage + 1);
         } 
       } catch(error) {
         console.error('Error fetching data:', error);
@@ -109,8 +142,8 @@ export default function MainMap() {
   
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
     const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
-    setBannerLoading(true);
     console.log(url)
+    setBannerLoading(true);
       try {
         const response = await fetch(url);
         const json = await response.json();
@@ -124,6 +157,25 @@ export default function MainMap() {
       } finally {
         setBannerLoading(false);
       }
+  }
+
+  const handleUserLocationUpdate = (location) => {
+    //console.log('getting location', location)
+    const coords = [location.coords.longitude, location.coords.latitude]
+    setLocation(coords);
+    setCameraLocation(coords);
+    setHasLocationPermission(true);
+    //handleDirections
+  };
+
+  const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
+    const to = turf.point(currentCoords);
+    const from = turf.point(maneuverCoords);
+    const options = { units: 'miles' };
+    const distance = turf.distance(from, to, options);
+
+    return distance < threshold
+    //if negative go to next direction
   }
 
   if (isLoading) {
@@ -183,6 +235,7 @@ export default function MainMap() {
         bannerLoading={bannerLoading}
         showBanner={showBanner}
         setShowBanner={setShowBanner}
+        setGettingDirections={setGettingDirections}
       />
       <Map 
         location={location}
@@ -204,6 +257,7 @@ export default function MainMap() {
         fetchDirections={fetchDirections}
         fitCameraBounds={fitCameraBounds}
         setShowBanner={setShowBanner}
+        setStepIndex={setStepIndex}
       />
     </GestureHandlerRootView>
   )

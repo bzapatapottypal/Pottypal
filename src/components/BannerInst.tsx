@@ -2,8 +2,7 @@ import { AntDesign, EvilIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { FlatList, Text, View, StyleSheet, Modal, Pressable } from "react-native";
 
-const BannerInst = ({mapBoxJson, bannerLoading, showBanner, setShowBanner}) => {
-
+const BannerInst = ({mapBoxJson, bannerLoading, showBanner, setShowBanner, setGettingDirections}) => {
   if(!showBanner) {
     return
   }
@@ -33,7 +32,10 @@ const BannerInst = ({mapBoxJson, bannerLoading, showBanner, setShowBanner}) => {
         <View style={styles.dropdown}>
           <Pressable
             style={{alignSelf:'flex-end', borderRadius: 20, borderColor:'red', borderStyle: 'solid', borderWidth: 1,}}
-            onPressOut={() => setShowBanner(!showBanner)}
+            onPressOut={() => {
+              setShowBanner(!showBanner)
+              setGettingDirections(false)
+            }}
           >
             <AntDesign
               name="close"

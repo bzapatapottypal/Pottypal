@@ -4,10 +4,9 @@ import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 
-
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setShowBanner}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setShowBanner, setStepIndex}) => {
   const bottomSheetRef = useRef(null);
-  
+
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
@@ -22,7 +21,8 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     if (!item.latitude || !item.longitude) {
       console.error(`Missing coordinates for destination ID: ${item.id}`, item);
       return null; // Skip rendering this item if coordinates are missing
-    }
+    }   
+
 
     const calculatedDistance = turf.distance(to, from, options);
 
@@ -58,6 +58,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setShowBanner(true);
+              setStepIndex(0);
             }}
             style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
           >
