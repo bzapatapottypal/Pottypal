@@ -24,11 +24,12 @@ export default function MainMap() {
   const [route, setRoute] = useState([]);
   const [profile, setProfile] = useState('driving');
   const [gettingDirections, setGettingDirections] = useState(false);
-  const [mapBoxJson, setMapBoxJson] = useState(null)
-  const [bannerLoading, setBannerLoading] = useState(true)
-  const [showBanner, setShowBanner] = useState(true)
-
-  const [stepIndex, setStepIndex] = useState(0)
+  const [mapBoxJson, setMapBoxJson] = useState(null);
+  const [bannerLoading, setBannerLoading] = useState(true);
+  const [showBanner, setShowBanner] = useState(true);
+  const [zoom, setZoom] = useState(10);
+  const [navigating, setNavigating] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
   const camera = useRef(null);
   
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
@@ -69,8 +70,10 @@ export default function MainMap() {
 
   useEffect(() => {
     if(!mapBoxJson){
+      setNavigating(false);
       return
     }
+    setNavigating(true);
     let steps = mapBoxJson.routes[0].legs[0].steps
     let currentStep = steps[stepIndex];
     let maneuverCoords = currentStep.maneuver.location;
@@ -85,16 +88,22 @@ export default function MainMap() {
       console.log('arrive')
     }
     if(stepIndex > 0 && isCloseToManeuver(location, maneuverCoords)) {
-      //console.log('location is at maneuver');
       Speech.speak(currentStep.maneuver.instruction);
       setStepIndex(prevStep => prevStep + 1);
     }
   }, [stepIndex, mapBoxJson, location]);
+  
+  useEffect(() => {
+    if(navigating === true) {
+      //console.log('navigating')
+      return
+    }
+    setCameraLocation(location)
+  },[location])
 
   const initialDirection = (currentStep: number) => {
     setStepIndex(1);
     Speech.speak(currentStep.maneuver.instruction)
-    //console.log('bigger than zero')
   }
 
   const handleFilter = (filter: string) => {
@@ -106,7 +115,7 @@ export default function MainMap() {
   };
 
   const fitCameraBounds = (start, end) => {
-    setCameraLocation(start);
+    //setCameraLocation(start);
     camera.current?.fitBounds(start, end, [40, 40], 2000);
     //TODO: Encompass map pointer in zoom out
   }
@@ -163,9 +172,8 @@ export default function MainMap() {
     //console.log('getting location', location)
     const coords = [location.coords.longitude, location.coords.latitude]
     setLocation(coords);
-    setCameraLocation(coords);
+    //setCameraLocation(coords);
     setHasLocationPermission(true);
-    //handleDirections
   };
 
   const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
@@ -175,7 +183,7 @@ export default function MainMap() {
     const distance = turf.distance(from, to, options);
 
     return distance < threshold
-    //if negative go to next direction
+    //TODO:if negative go to next direction
   }
 
   if (isLoading) {
@@ -241,10 +249,11 @@ export default function MainMap() {
         location={location}
         destination={destination}
         cameraLocation={cameraLocation}
-        setCameraLocation={setCameraLocation}
         route={route} 
         gettingDirections={gettingDirections}
         camera={camera}
+        zoom={zoom}
+        navigating={navigating}
       />
       <DestinationList 
         destination={destination}

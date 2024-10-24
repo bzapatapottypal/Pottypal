@@ -34,7 +34,7 @@ const BannerInst = ({mapBoxJson, bannerLoading, showBanner, setShowBanner, setGe
             style={{alignSelf:'flex-end', borderRadius: 20, borderColor:'red', borderStyle: 'solid', borderWidth: 1,}}
             onPressOut={() => {
               setShowBanner(!showBanner)
-              setGettingDirections(false)
+              //setGettingDirections(false)
             }}
           >
             <AntDesign

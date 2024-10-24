@@ -21,8 +21,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     if (!item.latitude || !item.longitude) {
       console.error(`Missing coordinates for destination ID: ${item.id}`, item);
       return null; // Skip rendering this item if coordinates are missing
-    }   
-
+    }
 
     const calculatedDistance = turf.distance(to, from, options);
 
@@ -59,6 +58,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setShowBanner(true);
               setStepIndex(0);
+              bottomSheetRef.current.collapse()
             }}
             style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
           >

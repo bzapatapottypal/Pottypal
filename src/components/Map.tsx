@@ -1,32 +1,47 @@
 import React, { useEffect, useRef } from 'react'
-import Mapbox, { Camera } from '@rnmapbox/maps';
+import Mapbox, { Camera, LocationPuck, MapView, UserTrackingMode } from '@rnmapbox/maps';
 import { View } from 'react-native';
 
-const Map = ({location, destination, cameraLocation, setCameraLocation, route, gettingDirections, camera}) => {
+const Map = ({location, destination, cameraLocation, route, gettingDirections, camera, zoom, navigating}) => {
   
   return(
-    <Mapbox.MapView style={{flex: 1, zIndex: -1}}>
+    <MapView 
+      style={{flex: 1, zIndex: -1}}
+      compassEnabled = {true}
+    >
         <Camera 
-          centerCoordinate= {cameraLocation}
-          zoomLevel= {10}
-          followZoomLevel= {15}
-          animationMode= {'flyTo'} // Smooth camera movement
-          animationDuration= {2000} // Duration of the camera snap
-          followUserLocation= {false}
-          ref={camera}
+          centerCoordinate = {cameraLocation}
+          zoomLevel = {zoom}
+          animationMode = {'flyTo'}
+          animationDuration= {2000} 
+          followUserLocation = {navigating}
+          followZoomLevel = {20}
+          followPitch = {0}
+          followUserMode={UserTrackingMode.FollowWithHeading}
+          ref = {camera}
+          //heading={180}//in degrees
+
         />
-        {gettingDirections && (
-          <Mapbox.ShapeSource id="routeSource" shape={{type: 'LineString', coordinates: route}}>
+          {gettingDirections && (
+            <Mapbox.ShapeSource id="routeSource" shape={{type: 'LineString', coordinates: route}}>
               <Mapbox.LineLayer id="routeLine" style={{lineColor: '#4681f4', lineWidth: 6, lineCap: 'round', lineOpacity: 1}} />
           </Mapbox.ShapeSource>
         )}
-          <Mapbox.PointAnnotation
-            id='current location'
-            coordinate={location}
+          {
+            /*<Mapbox.PointAnnotation
+              id='current location'
+              coordinate={location}
+            >
+              <View style={{ height: 30, width: 30, backgroundColor: 'blue', borderRadius: 15, borderColor: 'white', borderWidth: 2}} />
+              <Mapbox.Callout title="You are here!" /> 
+            </Mapbox.PointAnnotation>*/
+          }
+          <LocationPuck
+            puckBearingEnabled = {true}
+            puckBearing = 'course'
           >
-            <View style={{ height: 30, width: 30, backgroundColor: 'blue', borderRadius: 15, borderColor: 'white', borderWidth: 2}} />
-            <Mapbox.Callout title="You are here!" /> 
-          </Mapbox.PointAnnotation>
+            
+          </LocationPuck>
         {/* create pointers for current results */}
         {destination.map((dest: { id: string | undefined; longitude: number; latitude: number; name: string; }) => (
           <Mapbox.PointAnnotation
@@ -38,7 +53,7 @@ const Map = ({location, destination, cameraLocation, setCameraLocation, route, g
             <Mapbox.Callout title={dest.name} />
           </Mapbox.PointAnnotation>
         ))}
-      </Mapbox.MapView>
+      </MapView>
   )
 };
 
