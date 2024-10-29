@@ -1,54 +1,117 @@
-import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput, Image, FlatList, TouchableHighlight } from 'react-native';
-import { Feather, Entypo } from "@expo/vector-icons";
+import React, { useState, useEffect, useRef } from 'react';
+import { Text, View, StyleSheet, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput } from 'react-native';
+import { Feather } from "@expo/vector-icons";
+//import * as Location from 'expo-location';
+import Mapbox from '@rnmapbox/maps';
+import * as turf from '@turf/turf';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Speech from 'expo-speech'
 import * as Location from 'expo-location';
-import Mapbox, { Camera, PointAnnotation } from '@rnmapbox/maps';
-import * as turf from '@turf/turf'
-import Map from '@/src/components/Map'
+
+//import { useLocation } from '@/src/hooks/useLocation';
+
+
+import Map from '@/src/components/Map';
 import DestinationList from '@/src/components/DestinationList';
 
 export default function MainMap() {
-  const [calculatedDistances, setCalculatedDistances] = useState([]);
-  const [destination, setDestination] = useState([]);
-  const [currentDest, setCurrentDest] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [location, setLocation] = useState([]);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [location, setLocation] = useState(null);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [destination, setDestination] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [searchADA, setSearchADA] = useState(false);
   const [searchUnisex, setSearchUnisex] = useState(false);
   const [route, setRoute] = useState([]);
-  const [profile, setProfile] = useState('driving')
-  const [gettingDirections, setGettingDirections] = useState(false)
-
+  const [profile, setProfile] = useState('driving');
+  const [gettingDirections, setGettingDirections] = useState(false);
+  const [mapBoxJson, setMapBoxJson] = useState(null);
+  const [zoom, setZoom] = useState(10);
+  const [navigating, setNavigating] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  const camera = useRef(null);
+  
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
 
   const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
   
   useEffect(() => {
+    let subscription: { remove: any; }
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMsg('This app needs location permissions. Please enable in the settings.');
         return;
       } try {
-        let location = await Location.getCurrentPositionAsync({});
-        const coords = [location.coords.longitude, location.coords.latitude]
-        setLocation(coords);
-        setCameraLocation(coords);
-        console.log(coords)
-        setHasLocationPermission(true);
+        subscription = await Location.watchPositionAsync(
+          { 
+            accuracy: Location.Accuracy.High, 
+            timeInterval: 6000, 
+            distanceInterval: 20 
+          },
+          handleUserLocationUpdate
+        );
       } catch (error) {
         setErrorMsg('Could not get the location. Please try again.');
         //TODO: ADD RELOAD BUTTON
       } finally {
         setIsLoading(false)
       }
+      return () => subscription.remove();
     })();
-  }, []);
+  }, [])
+
+  useEffect(() => {
+    if (hasLocationPermission && location) {
+      loadMoreDestinations(); 
+    }
+  }, [hasLocationPermission, location]);
+
+  useEffect(() => {
+    if(!navigating){
+      return
+    }
+    let steps = mapBoxJson.routes[0].legs[0].steps
+    let currentStep = steps[stepIndex];
+    let maneuverCoords = currentStep.maneuver.location;
+    if (!steps || steps.length === 0) {
+      console.log('No steps available');
+      return;
+    };
+    if(stepIndex === 0) {
+      initialDirection(currentStep);
+    }
+    if(currentStep.maneuver === "arrive") {
+      console.log('arrive')
+    }
+    if(stepIndex > 0 && isCloseToManeuver(location, maneuverCoords)) {
+      Speech.speak(currentStep.maneuver.instruction);
+      setStepIndex(prevStep => prevStep + 1);
+    }
+  }, [stepIndex, mapBoxJson, location]);
+  
+  useEffect(() => {
+    if(navigating === true) {
+      return
+    }
+    setCameraLocation(location)
+  },[location])
+
+  const handleUserLocationUpdate = (location: { coords: { longitude: any; latitude: any; }; }) => {
+    //console.log('getting location', location)
+    const coords = [location.coords.longitude, location.coords.latitude]
+    setLocation(coords);
+    //setCameraLocation(coords);
+    setHasLocationPermission(true);
+  };
+
+  const initialDirection = (currentStep: number) => {
+    setStepIndex(1);
+    Speech.speak(currentStep.maneuver.instruction)
+  }
 
   const handleFilter = (filter: string) => {
     if(filter === 'ADA') {
@@ -58,58 +121,67 @@ export default function MainMap() {
     }
   };
 
+  const fitCameraBounds = (start, end) => {
+    //setCameraLocation(start);
+    camera.current?.fitBounds(start, end, [40, 40], 2000);
+    //TODO: Encompass map pointer in zoom out
+  }
+  
   //TODO: add error handling if the api comes up with a undefined result
   //TODO: make the transition for filters removing and adding items smoother
   const loadMoreDestinations = async () => {
     if (location && location.length) {
-      //setIsLoading(true);
       try{
         const response = await fetch(`${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
         const fetchedData = await response.json();
-  
+        if (fetchedData === '') {
+          console.log('empty array')
+        }
         if (fetchedData.length === 0) {
-          setHasMore(false); // No more data to load
+          setHasMore(false);
         } else {
-          // Append new data to current destinations
           setDestination((prevDestinations) => {
             const newDestinations = fetchedData.filter(newDest => 
               !prevDestinations.some(prevDest => prevDest.id === newDest.id)
             );
             return [...prevDestinations, ...newDestinations];
           });
-          setPage(page + 1);
+          setPage(prevPage => prevPage + 1);
         } 
       } catch(error) {
         console.error('Error fetching data:', error);
-      } finally {
-        //setIsLoading(false);
       }
     } else {
-      console.log('Location is not set or undefined, cannot load destinations.');
+      console.log('Location is not set, cannot load destinations.');
     }
   };
   
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
-    
+    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+    console.log(url)
       try {
         const response = await fetch(url);
-        console.log(url);
         const json = await response.json();
-        const currentRoute = json.routes[0].geometry.coordinates;
-        setRoute(currentRoute)
+        setMapBoxJson(json);
+        setRoute(json.routes[0].geometry.coordinates);
         setGettingDirections(true);
       } catch (error) {
         console.error(error);
         //TODO: add a user visibile error
-      } 
+        return
+      } finally {
+        return
+      }
   }
+  const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
+    const to = turf.point(currentCoords);
+    const from = turf.point(maneuverCoords);
+    const options = { units: 'miles' };
+    const distance = turf.distance(from, to, options);
 
-  useEffect(() => {
-    if (hasLocationPermission && location) {
-      loadMoreDestinations(); 
-    }
-  }, [hasLocationPermission, location]);
+    return distance < threshold
+    //TODO:if negative go to next direction
+  }
 
   if (isLoading) {
     return <ActivityIndicator size="large" />;
@@ -135,9 +207,19 @@ export default function MainMap() {
   }
 
   return(
-    <View style={styles.container}> 
-      <View style={{backgroundColor: '#FFF', padding: 10}}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 0, paddingHorizontal: 10, backgroundColor: '#DDD', borderRadius: 40 }}>
+    <GestureHandlerRootView style={styles.container}> 
+      <View style={{
+        backgroundColor: '#FFF', 
+        padding: 10
+      }}>
+        <TouchableOpacity style={{
+          flexDirection: 'row', 
+          alignItems: 'center', 
+          paddingVertical: 0, 
+          paddingHorizontal: 10, 
+          backgroundColor: '#DDD', 
+          borderRadius: 40 
+        }}>
           <Feather 
             name="search"
             size={20}
@@ -145,69 +227,46 @@ export default function MainMap() {
             style={{ marginRight: 10 }}
           />
           <TextInput 
-            style={{ flex: 1, padding: 10 }}
+            style={{ 
+              flex: 1, 
+              padding: 10 
+            }}
             placeholder="Search..."
           />
-        </View>
+        </TouchableOpacity>
       </View>
       <Map 
         location={location}
         destination={destination}
         cameraLocation={cameraLocation}
-        setCameraLocation={setCameraLocation}
         route={route} 
         gettingDirections={gettingDirections}
+        camera={camera}
+        zoom={zoom}
+        navigating={navigating}
       />
-      <View style={styles.overlayContainer}>
-        <DestinationList 
-          destination={destination}
-          location={location}
-          setCameraLocation={setCameraLocation}
-          loadMoreDestinations={loadMoreDestinations}
-          searchADA={searchADA}
-          searchUnisex={searchUnisex} 
-          handleFilter={handleFilter}
-          fetchDirections={fetchDirections}
-        />
-      </View>
-    </View>
+      <DestinationList 
+        destination={destination}
+        location={location}
+        setCameraLocation={setCameraLocation}
+        loadMoreDestinations={loadMoreDestinations}
+        searchADA={searchADA}
+        searchUnisex={searchUnisex}
+        handleFilter={handleFilter}
+        fetchDirections={fetchDirections}
+        fitCameraBounds={fitCameraBounds}
+        setStepIndex={setStepIndex}
+        gettingDirections={gettingDirections}
+        mapBoxJson={mapBoxJson}
+        setNavigating={setNavigating}
+      />
+    </GestureHandlerRootView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  searchContainer: {
-    
-  },
-  searchBar: {
-  },
-  overlayContainer: {
-    position: 'absolute', // Absolute positioning to overlay the map
-    bottom: 0, // Pin to the bottom of the screen
-    left: 0,
-    right: 0,
-    height: Dimensions.get('window').height * 0.4, // Height of the overlay (40% of screen)
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent white background
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: -2 },
-    shadowRadius: 10,
-    elevation: 5, // For Android shadow
-  },
-  resultContainer: {
-    padding: 16,
-    marginVertical: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
   resultName: {
     fontSize: 18,
@@ -256,5 +315,4 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row'
   },
-  
 });
