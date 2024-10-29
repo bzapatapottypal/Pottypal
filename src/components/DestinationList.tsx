@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, FlatList, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, FlatList, Pressable, Share, Alert } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
@@ -7,6 +7,7 @@ import { AntDesign } from '@expo/vector-icons';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections}) => {
   const bottomSheetRef = useRef(null);
+  const [currentDest, setCurrentDest] = useState('')
 
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
@@ -21,6 +22,26 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       return Math.ceil(hours) + 'hours'
     }
     return Math.ceil(minutes)
+  }
+
+  const handleShare = async() => {
+    try{
+      const result = await Share.share({
+        message: `${currentDest.name}, ${currentDest.street}, ${currentDest.city}, ${currentDest.state}`,
+        title: 'Sharing Location'
+      });
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // shared with activity type of result.activityType
+        } else {
+          // shared
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // dismissed
+      }
+    } catch (error:any) {
+      Alert.alert(error.message);
+    }
   }
 
   const renderDestination = ({ item }) => {
@@ -65,6 +86,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setStepIndex(0);
+              setCurrentDest(item)
             }}
             style={styles.pressable}
           >
@@ -145,7 +167,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           ListFooterComponent={
             <View style={{
               flex: 1,
-              marginBottom: 30
+              marginBottom: 30,
+              flexDirection: 'row',
+              gap: 10
             }}>
               <Pressable 
                 style={styles.pressable}
@@ -155,6 +179,14 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                 }}
               >
                 <Text style={styles.buttonText}>Start</Text>
+              </Pressable>
+              <Pressable 
+                style={styles.pressable}
+                onPress={() => {
+                  handleShare();
+                }}
+              >
+                <Text style={styles.buttonText}>Share</Text>
               </Pressable>
             </View>
           }
@@ -230,7 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4681f4', 
     width: '30%', 
     alignItems:'center', 
-    borderRadius:30, 
+    borderRadius: 30, 
     marginTop: 8
   },
   buttonText: {
