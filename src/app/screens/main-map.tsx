@@ -1,21 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, StyleSheet, ScrollView, Dimensions, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput, Image, FlatList, TouchableHighlight, Animated } from 'react-native';
-import { Feather, Entypo } from "@expo/vector-icons";
-import * as Location from 'expo-location';
-import Mapbox, { Camera, PointAnnotation } from '@rnmapbox/maps';
+import { Text, View, StyleSheet, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput } from 'react-native';
+import { Feather } from "@expo/vector-icons";
+//import * as Location from 'expo-location';
+import Mapbox from '@rnmapbox/maps';
 import * as turf from '@turf/turf';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Speech from 'expo-speech'
+import * as Location from 'expo-location';
+
+//import { useLocation } from '@/src/hooks/useLocation';
+
+
 import Map from '@/src/components/Map';
 import DestinationList from '@/src/components/DestinationList';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import BannerInst from '@/src/components/BannerInst';
-import * as Speech from 'expo-speech'
 
 export default function MainMap() {
+  const [location, setLocation] = useState(null);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [destination, setDestination] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -25,8 +29,6 @@ export default function MainMap() {
   const [profile, setProfile] = useState('driving');
   const [gettingDirections, setGettingDirections] = useState(false);
   const [mapBoxJson, setMapBoxJson] = useState(null);
-  const [bannerLoading, setBannerLoading] = useState(true);
-  const [showBanner, setShowBanner] = useState(true);
   const [zoom, setZoom] = useState(10);
   const [navigating, setNavigating] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -37,7 +39,7 @@ export default function MainMap() {
   const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
   
   useEffect(() => {
-    let subscription
+    let subscription: { remove: any; }
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -69,11 +71,9 @@ export default function MainMap() {
   }, [hasLocationPermission, location]);
 
   useEffect(() => {
-    if(!mapBoxJson){
-      setNavigating(false);
+    if(!navigating){
       return
     }
-    setNavigating(true);
     let steps = mapBoxJson.routes[0].legs[0].steps
     let currentStep = steps[stepIndex];
     let maneuverCoords = currentStep.maneuver.location;
@@ -95,11 +95,18 @@ export default function MainMap() {
   
   useEffect(() => {
     if(navigating === true) {
-      //console.log('navigating')
       return
     }
     setCameraLocation(location)
   },[location])
+
+  const handleUserLocationUpdate = (location: { coords: { longitude: any; latitude: any; }; }) => {
+    //console.log('getting location', location)
+    const coords = [location.coords.longitude, location.coords.latitude]
+    setLocation(coords);
+    //setCameraLocation(coords);
+    setHasLocationPermission(true);
+  };
 
   const initialDirection = (currentStep: number) => {
     setStepIndex(1);
@@ -152,7 +159,6 @@ export default function MainMap() {
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
     const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
     console.log(url)
-    setBannerLoading(true);
       try {
         const response = await fetch(url);
         const json = await response.json();
@@ -164,18 +170,9 @@ export default function MainMap() {
         //TODO: add a user visibile error
         return
       } finally {
-        setBannerLoading(false);
+        return
       }
   }
-
-  const handleUserLocationUpdate = (location) => {
-    //console.log('getting location', location)
-    const coords = [location.coords.longitude, location.coords.latitude]
-    setLocation(coords);
-    //setCameraLocation(coords);
-    setHasLocationPermission(true);
-  };
-
   const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
     const to = turf.point(currentCoords);
     const from = turf.point(maneuverCoords);
@@ -238,13 +235,6 @@ export default function MainMap() {
           />
         </TouchableOpacity>
       </View>
-      <BannerInst 
-        mapBoxJson={mapBoxJson}
-        bannerLoading={bannerLoading}
-        showBanner={showBanner}
-        setShowBanner={setShowBanner}
-        setGettingDirections={setGettingDirections}
-      />
       <Map 
         location={location}
         destination={destination}
@@ -265,8 +255,10 @@ export default function MainMap() {
         handleFilter={handleFilter}
         fetchDirections={fetchDirections}
         fitCameraBounds={fitCameraBounds}
-        setShowBanner={setShowBanner}
         setStepIndex={setStepIndex}
+        gettingDirections={gettingDirections}
+        mapBoxJson={mapBoxJson}
+        setNavigating={setNavigating}
       />
     </GestureHandlerRootView>
   )

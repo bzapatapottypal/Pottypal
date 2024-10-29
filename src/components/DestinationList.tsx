@@ -4,7 +4,7 @@ import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setShowBanner, setStepIndex}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating}) => {
   const bottomSheetRef = useRef(null);
 
   const filteredDestinations = destination.filter(item => {
@@ -12,6 +12,15 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     const isUnisex = searchUnisex ? item.unisex : true;
     return isAdaCompliant && isUnisex;
   });
+
+  function minuteCalc(num: number)  {
+    const minutes = num/60
+    if(minutes > 60) {
+      const hours = minutes/60
+      return Math.ceil(hours) + 'hours'
+    }
+    return Math.ceil(minutes)
+  }
 
   const renderDestination = ({ item }) => {
     const to = turf.point([item.longitude, item.latitude])
@@ -24,7 +33,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     }
 
     const calculatedDistance = turf.distance(to, from, options);
-
+    
     return(
       <View key={item.id} style={styles.resultContainer}>
         <TouchableOpacity
@@ -47,8 +56,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             <Text style={styles.line}>Unisex: {item.unisex ? 'Yes' : 'No'}</Text>
             <Text style={styles.line}>ADA Accessible: {item.accessible ? 'Yes' : 'No'}</Text>
             <Text style={styles.line}>Changing Table: {item.changing_table ? 'Yes' : 'No'}</Text>
-            <Text></Text>
-            <Text></Text>
           </View>
           <Text style={styles.line}>Comment: {item.comment}</Text>
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
@@ -56,18 +63,60 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             onPress={() => {
               fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
-              setShowBanner(true);
               setStepIndex(0);
-              bottomSheetRef.current.collapse()
             }}
-            style={{backgroundColor: '#4681f4', width: '30%', alignItems:'center', borderRadius:30, marginTop: 8}}
+            style={styles.pressable}
           >
-            <Text style={{fontSize: 16, padding: 10, color: 'white'}}>Directions</Text>
+            <Text style={styles.buttonText}>Directions</Text>
           </Pressable>
         </TouchableOpacity>
       </View>
     );
   };
+
+  const renderDirections = ({ item }) => {
+    const manueverDistance = (item.distance * 0.0006213712).toFixed(1)
+
+    return(
+      <View 
+        style={{
+          flex: 1,
+          flexDirection: 'column',
+          marginBottom: 5
+        }}
+        key={item.id}
+      >
+        <Text style={{
+          fontSize: 16,
+          flexWrap: 'wrap',
+          alignSelf: 'flex-start',
+          marginLeft: 70
+        }}>
+        {item.maneuver.instruction}
+        </Text>
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center'
+          }}
+        >
+          <Text
+            style={{
+              width: 70,
+              marginRight: 5,
+              fontSize: 16,
+              textAlign:'center'
+            }}
+          >
+            {manueverDistance} mi
+          </Text>
+          <View style={{flex: 1, height: 1, backgroundColor: 'gray'}} />
+        </View>
+      </View>
+    )
+  }
+
   return(
     <BottomSheet
       ref={bottomSheetRef}
@@ -86,8 +135,37 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         shadowRadius: 10,
         elevation: 5, // For Android shadow
       }}
-    >
-      <BottomSheetFlatList
+    > 
+      {gettingDirections ? (
+        <BottomSheetFlatList
+          data={mapBoxJson.routes[0].legs[0].steps}
+          keyExtractor={(item) => item.index}
+          renderItem={renderDirections}
+          ListFooterComponent={
+            <View style={{
+              flex: 1,
+              marginBottom: 30
+            }}>
+              <Pressable 
+                style={styles.pressable}
+                onPress={() => {
+                  setNavigating(true);
+                  bottomSheetRef.current.collapse();
+                }}
+              >
+                <Text style={styles.buttonText}>Start</Text>
+              </Pressable>
+            </View>
+          }
+          ListHeaderComponent={
+            <View style={{margin: 5}}>
+              <Text style={{fontSize: 22}}>Drive</Text>
+              <Text>Time: {minuteCalc(mapBoxJson.routes[0].legs[0].duration)} min</Text>
+            </View>
+          }
+        />
+      ) : (
+        <BottomSheetFlatList
         data={filteredDestinations}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderDestination}
@@ -101,7 +179,8 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             searchUnisex={searchUnisex}
           />
         }
-      />
+        />
+      )}
     </BottomSheet>
   )
 };
@@ -132,5 +211,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  pressable: {
+    backgroundColor: '#4681f4', 
+    width: '30%', 
+    alignItems:'center', 
+    borderRadius:30, 
+    marginTop: 8
+  },
+  buttonText: {
+    fontSize: 16, 
+    padding: 10, 
+    color: 'white'
+  }
 })
 export default DestinationList;
