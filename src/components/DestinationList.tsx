@@ -3,8 +3,9 @@ import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Activ
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
+import { AntDesign } from '@expo/vector-icons';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections}) => {
   const bottomSheetRef = useRef(null);
 
   const filteredDestinations = destination.filter(item => {
@@ -84,7 +85,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           flexDirection: 'column',
           marginBottom: 5
         }}
-        key={item.id}
+        key={item.index}
       >
         <Text style={{
           fontSize: 16,
@@ -159,6 +160,20 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           }
           ListHeaderComponent={
             <View style={{margin: 5}}>
+              <Pressable
+                style={{
+                  alignSelf:'flex-end', 
+                  borderRadius: 20, 
+                  borderColor:'red', 
+                  borderStyle: 'solid', 
+                  borderWidth: 1
+                }}
+                onPressOut={() => {
+                  setGettingDirections(false)
+                }}
+              >
+                <AntDesign name="close" color={'red'} size={20} />
+              </Pressable>
               <Text style={{fontSize: 22}}>Drive</Text>
               <Text>Time: {minuteCalc(mapBoxJson.routes[0].legs[0].duration)} min</Text>
             </View>

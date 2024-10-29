@@ -259,6 +259,7 @@ export default function MainMap() {
         gettingDirections={gettingDirections}
         mapBoxJson={mapBoxJson}
         setNavigating={setNavigating}
+        setGettingDirections={setGettingDirections}
       />
     </GestureHandlerRootView>
   )
