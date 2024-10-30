@@ -1,11 +1,21 @@
-import React, { useRef } from 'react';
-import { Text, View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, FlatList, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Pressable, Share, Alert, Easing } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet'
+import BottomSheet, { BottomSheetFlatList, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
+import { AntDesign } from '@expo/vector-icons';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections}) => {
   const bottomSheetRef = useRef(null);
+  const [currentDest, setCurrentDest] = useState('')
+
+  const animationConfigs = useBottomSheetSpringConfigs({
+    damping: 80,
+    overshootClamping: true,
+    restDisplacementThreshold: 0.1,
+    restSpeedThreshold: 0.1,
+    stiffness: 500,
+  });
 
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
@@ -20,6 +30,26 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       return Math.ceil(hours) + 'hours'
     }
     return Math.ceil(minutes)
+  }
+
+  const handleShare = async() => {
+    try{
+      const result = await Share.share({
+        message: `${currentDest.name}, ${currentDest.street}, ${currentDest.city}, ${currentDest.state}`,
+        title: 'Sharing Location'
+      });
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // shared with activity type of result.activityType
+        } else {
+          // shared
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // dismissed
+      }
+    } catch (error:any) {
+      Alert.alert(error.message);
+    }
   }
 
   const renderDestination = ({ item }) => {
@@ -61,9 +91,14 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
           <Pressable 
             onPress={() => {
+              bottomSheetRef.current.collapse();
               fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setStepIndex(0);
+              setCurrentDest(item)
+              setTimeout(() => {
+                bottomSheetRef.current.snapToIndex(1);
+              }, 600)
             }}
             style={styles.pressable}
           >
@@ -84,7 +119,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           flexDirection: 'column',
           marginBottom: 5
         }}
-        key={item.id}
+        key={item.index}
       >
         <Text style={{
           fontSize: 16,
@@ -144,7 +179,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           ListFooterComponent={
             <View style={{
               flex: 1,
-              marginBottom: 30
+              marginBottom: 30,
+              flexDirection: 'row',
+              gap: 10
             }}>
               <Pressable 
                 style={styles.pressable}
@@ -155,10 +192,41 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               >
                 <Text style={styles.buttonText}>Start</Text>
               </Pressable>
+              <Pressable 
+                style={styles.pressable}
+                onPress={() => {
+                  handleShare();
+                }}
+              >
+                <Text style={styles.buttonText}>Share</Text>
+              </Pressable>
             </View>
           }
           ListHeaderComponent={
             <View style={{margin: 5}}>
+              <Pressable
+                style={{
+                  alignSelf:'flex-end', 
+                  borderRadius: 20, 
+                  borderColor:'red', 
+                  borderStyle: 'solid', 
+                  borderWidth: 1
+                }}
+                onPressOut={() => {
+                  bottomSheetRef.current.collapse();
+                }}
+                onPress={() => {
+                  setTimeout(() => {
+                    setGettingDirections((wasGetting:boolean) => {
+                      bottomSheetRef.current.snapToIndex(1, animationConfigs);
+                      return !wasGetting
+                    });
+                  }, 600)
+                  
+                }}
+              >
+                <AntDesign name="close" color={'red'} size={20} />
+              </Pressable>
               <Text style={{fontSize: 22}}>Drive</Text>
               <Text>Time: {minuteCalc(mapBoxJson.routes[0].legs[0].duration)} min</Text>
             </View>
@@ -166,19 +234,19 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         />
       ) : (
         <BottomSheetFlatList
-        data={filteredDestinations}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderDestination}
-        onEndReached={loadMoreDestinations}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={<ActivityIndicator />}
-        ListHeaderComponent={
-          <SearchFilters
-            handleFilter={handleFilter}
-            searchADA={searchADA}
-            searchUnisex={searchUnisex}
-          />
-        }
+          data={filteredDestinations}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderDestination}
+          onEndReached={loadMoreDestinations}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={<ActivityIndicator />}
+          ListHeaderComponent={
+            <SearchFilters
+              handleFilter={handleFilter}
+              searchADA={searchADA}
+              searchUnisex={searchUnisex}
+            />
+          }
         />
       )}
     </BottomSheet>
@@ -215,7 +283,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4681f4', 
     width: '30%', 
     alignItems:'center', 
-    borderRadius:30, 
+    borderRadius: 30, 
     marginTop: 8
   },
   buttonText: {

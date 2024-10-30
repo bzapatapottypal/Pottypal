@@ -58,7 +58,6 @@ export default function MainMap() {
         setErrorMsg('Could not get the location. Please try again.');
         //TODO: ADD RELOAD BUTTON
       } finally {
-        setIsLoading(false)
       }
       return () => subscription.remove();
     })();
@@ -104,8 +103,8 @@ export default function MainMap() {
     //console.log('getting location', location)
     const coords = [location.coords.longitude, location.coords.latitude]
     setLocation(coords);
-    //setCameraLocation(coords);
     setHasLocationPermission(true);
+    setIsLoading(false)
   };
 
   const initialDirection = (currentStep: number) => {
@@ -259,6 +258,7 @@ export default function MainMap() {
         gettingDirections={gettingDirections}
         mapBoxJson={mapBoxJson}
         setNavigating={setNavigating}
+        setGettingDirections={setGettingDirections}
       />
     </GestureHandlerRootView>
   )
