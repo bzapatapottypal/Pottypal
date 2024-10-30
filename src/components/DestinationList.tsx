@@ -90,8 +90,10 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           <Text style={styles.line}>Comment: {item.comment}</Text>
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
           <Pressable 
-            onPress={() => {
+            onPressOut={() => {
               bottomSheetRef.current.collapse();
+            }}
+            onPress={() => {
               fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setStepIndex(0);
@@ -168,7 +170,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         shadowOpacity: 0.3,
         shadowOffset: { width: 0, height: -2 },
         shadowRadius: 10,
-        elevation: 5, // For Android shadow
+        elevation: 5
       }}
     > 
       {gettingDirections ? (
@@ -222,7 +224,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                       return !wasGetting
                     });
                   }, 600)
-                  
                 }}
               >
                 <AntDesign name="close" color={'red'} size={20} />

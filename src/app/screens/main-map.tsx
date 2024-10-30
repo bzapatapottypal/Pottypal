@@ -244,6 +244,35 @@ export default function MainMap() {
         zoom={zoom}
         navigating={navigating}
       />
+      {navigating && (
+        <Pressable
+          style={{
+            position: 'absolute',
+            bottom: 100,
+            margin: 10,
+            backgroundColor: '#4681f4', 
+            width: '30%', 
+            alignItems:'center', 
+            borderRadius: 30 
+          }}
+          onPress={() => {
+            setNavigating((wasNav) => {
+              setGettingDirections(false)
+              return !wasNav
+            })
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16, 
+              padding: 10, 
+              color: 'white'
+            }}
+          >
+            Re-center
+          </Text>
+        </Pressable>
+      )}
       <DestinationList 
         destination={destination}
         location={location}
