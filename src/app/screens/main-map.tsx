@@ -155,23 +155,6 @@ export default function MainMap() {
     }
   };
   
-  const fetchDirections = async (profile: string , start: any[], end: any[]) => {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
-    console.log(url)
-      try {
-        const response = await fetch(url);
-        const json = await response.json();
-        setMapBoxJson(json);
-        setRoute(json.routes[0].geometry.coordinates);
-        setGettingDirections(true);
-      } catch (error) {
-        console.error(error);
-        //TODO: add a user visibile error
-        return
-      } finally {
-        return
-      }
-  }
   const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
     const to = turf.point(currentCoords);
     const from = turf.point(maneuverCoords);
@@ -256,10 +239,7 @@ export default function MainMap() {
             borderRadius: 30 
           }}
           onPress={() => {
-            setNavigating((wasNav) => {
-              setGettingDirections(false)
-              return !wasNav
-            })
+            return
           }}
         >
           <Text
@@ -281,13 +261,15 @@ export default function MainMap() {
         searchADA={searchADA}
         searchUnisex={searchUnisex}
         handleFilter={handleFilter}
-        fetchDirections={fetchDirections}
         fitCameraBounds={fitCameraBounds}
         setStepIndex={setStepIndex}
         gettingDirections={gettingDirections}
         mapBoxJson={mapBoxJson}
         setNavigating={setNavigating}
         setGettingDirections={setGettingDirections}
+        setMapBoxJson={setMapBoxJson}
+        setRoute={setRoute}
+        navigating={navigating}
       />
     </GestureHandlerRootView>
   )

@@ -20,7 +20,7 @@ const Map = ({location, destination, cameraLocation, route, gettingDirections, c
         ref = {camera}
         //heading={180}//in degrees
       />
-      {gettingDirections && (
+      {(gettingDirections || navigating) && (
         <Mapbox.ShapeSource id="routeSource" shape={{type: 'LineString', coordinates: route}}>
           <Mapbox.LineLayer id="routeLine" style={{lineColor: '#4681f4', lineWidth: 6, lineCap: 'round', lineOpacity: 1}} />
         </Mapbox.ShapeSource>

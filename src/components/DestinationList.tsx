@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Pressable, Share, Alert, Easing } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
-import BottomSheet, { BottomSheetFlatList, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
-import { AntDesign } from '@expo/vector-icons';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetFooter, BottomSheetHandle, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
+import { AntDesign, Feather } from '@expo/vector-icons';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fetchDirections, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating}) => {
   const bottomSheetRef = useRef(null);
   const [currentDest, setCurrentDest] = useState('')
 
@@ -23,6 +23,66 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     return isAdaCompliant && isUnisex;
   });
 
+  const fetchDirections = async (profile: string , start: any[], end: any[]) => {
+    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
+    console.log(url)
+      try {
+        const response = await fetch(url);
+        const json = await response.json();
+        setMapBoxJson(json);
+        setRoute(json.routes[0].geometry.coordinates);
+        setGettingDirections(true);
+      } catch (error) {
+        console.error(error);
+        //TODO: add a user visibile error
+        return
+      } finally {
+        return
+      }
+  }
+
+  const renderFooter =
+    props => (
+      <BottomSheetFooter {...props} >
+        <View style={{
+          paddingBottom: 20,
+          paddingHorizontal: 0,
+          flex: 1,
+          flexDirection: 'row',
+          gap: 10,
+          shadowColor: 'black',
+          shadowOpacity: 0.1,
+          shadowRadius: 6,
+          backgroundColor: 'white',
+          elevation: 8
+        }}>
+          <Pressable 
+            style={styles.pressable}
+            onPressOut={() => {
+              bottomSheetRef.current.collapse();
+            }}
+            onPress={() => {
+              setNavigating(true);
+              setGettingDirections((wasGetting:boolean) => {
+                bottomSheetRef.current.snapToIndex(1, animationConfigs);
+                return !wasGetting
+              });
+            }}
+          >
+            <Text style={styles.buttonText}>Start</Text>
+          </Pressable>
+          <Pressable 
+            style={styles.pressable}
+            onPress={() => {
+              handleShare();
+            }}
+          >
+            <Text style={styles.buttonText}>Share</Text>
+          </Pressable>
+        </View>
+      </BottomSheetFooter>
+    )
+  
   function minuteCalc(num: number)  {
     const minutes = num/60
     if(minutes > 60) {
@@ -92,15 +152,15 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           <Pressable 
             onPressOut={() => {
               bottomSheetRef.current.collapse();
+              fetchDirections('driving', location, [item.longitude, item.latitude]);
             }}
             onPress={() => {
-              fetchDirections('driving', location, [item.longitude, item.latitude]);
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setStepIndex(0);
               setCurrentDest(item)
               setTimeout(() => {
-                bottomSheetRef.current.snapToIndex(1);
-              }, 600)
+                bottomSheetRef.current.snapToIndex(2);
+              }, 300)
             }}
             style={styles.pressable}
           >
@@ -157,11 +217,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   return(
     <BottomSheet
       ref={bottomSheetRef}
-      snapPoints={[450, 300, 30]}
-      index={1}
+      snapPoints={[450, 300, 100, 30]}
+      index={3}
       enablePanDownToClose={false}
       backgroundStyle={{backgroundColor: 'rgba(255, 255, 255, 0.9)'}}
       animateOnMount={true}
+      footerComponent={gettingDirections ? renderFooter : undefined} 
       style={{
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
@@ -173,37 +234,37 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         elevation: 5
       }}
     > 
-      {gettingDirections ? (
+      {navigating ? (
+        <View>
+          <Pressable
+            style={{
+              alignSelf:'flex-start', 
+              borderRadius: 50, 
+              borderColor: 'black', 
+              borderStyle: 'solid', 
+              borderWidth: 1
+            }}
+            onPressOut={() => {
+              bottomSheetRef.current.collapse();
+            }}
+            onPress={() => {
+              setTimeout(() => {
+                setNavigating((wasNavigating:boolean) => {
+                  bottomSheetRef.current.snapToIndex(1, animationConfigs);
+                  return !wasNavigating
+                });
+              }, 600)
+            }}
+          >
+            <AntDesign name="close" color={'black'} size={50} />
+          </Pressable>
+        </View>
+      ): 
+      gettingDirections ? (
         <BottomSheetFlatList
           data={mapBoxJson.routes[0].legs[0].steps}
           keyExtractor={(item) => item.index}
           renderItem={renderDirections}
-          ListFooterComponent={
-            <View style={{
-              flex: 1,
-              marginBottom: 30,
-              flexDirection: 'row',
-              gap: 10
-            }}>
-              <Pressable 
-                style={styles.pressable}
-                onPress={() => {
-                  setNavigating(true);
-                  bottomSheetRef.current.collapse();
-                }}
-              >
-                <Text style={styles.buttonText}>Start</Text>
-              </Pressable>
-              <Pressable 
-                style={styles.pressable}
-                onPress={() => {
-                  handleShare();
-                }}
-              >
-                <Text style={styles.buttonText}>Share</Text>
-              </Pressable>
-            </View>
-          }
           ListHeaderComponent={
             <View style={{margin: 5}}>
               <Pressable
@@ -220,7 +281,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                 onPress={() => {
                   setTimeout(() => {
                     setGettingDirections((wasGetting:boolean) => {
-                      bottomSheetRef.current.snapToIndex(1, animationConfigs);
+                      bottomSheetRef.current.snapToIndex(2, animationConfigs);
                       return !wasGetting
                     });
                   }, 600)
@@ -233,7 +294,8 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             </View>
           }
         />
-      ) : (
+      ): 
+      (
         <BottomSheetFlatList
           data={filteredDestinations}
           keyExtractor={(item) => item.id.toString()}
