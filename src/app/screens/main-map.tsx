@@ -6,7 +6,7 @@ import Mapbox from '@rnmapbox/maps';
 import * as turf from '@turf/turf';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Speech from 'expo-speech'
-import * as Location from 'expo-location';
+import * as Location from 'expo-location'; 
 
 //import { useLocation } from '@/src/hooks/useLocation';
 
@@ -227,7 +227,7 @@ export default function MainMap() {
         zoom={zoom}
         navigating={navigating}
       />
-      {navigating && (
+      {/*navigating && (
         <Pressable
           style={{
             position: 'absolute',
@@ -239,7 +239,10 @@ export default function MainMap() {
             borderRadius: 30 
           }}
           onPress={() => {
-            return
+            if (camera.current) {
+              camera.current.followUserLocation = false
+              setCameraLocation(location)
+            }
           }}
         >
           <Text
@@ -252,7 +255,7 @@ export default function MainMap() {
             Re-center
           </Text>
         </Pressable>
-      )}
+      )*/}
       <DestinationList 
         destination={destination}
         location={location}

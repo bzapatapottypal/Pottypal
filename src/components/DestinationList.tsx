@@ -1,13 +1,17 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Pressable, Share, Alert, Easing } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetFooter, BottomSheetHandle, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
-import { AntDesign, Feather } from '@expo/vector-icons';
+import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
+import { AntDesign } from '@expo/vector-icons';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating}) => {
   const bottomSheetRef = useRef(null);
-  const [currentDest, setCurrentDest] = useState('')
+  const [currentDest, setCurrentDest] = useState('');
+  const [travelTime, setTravelTime] = useState<number | string>('0 hours');
+  const [drivingDist, setDrivingDist] = useState('0 miles');
+  const [currentETA, setCurrentETA] = useState('00:00')
+
 
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
@@ -25,7 +29,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
 
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
     const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
-    console.log(url)
+    console.log('directions' + url)
       try {
         const response = await fetch(url);
         const json = await response.json();
@@ -41,21 +45,35 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       }
   }
 
+  const fetchMatrix = async (profile, start, end) => {
+    const url = `https://api.mapbox.com/directions-matrix/v1/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?&annotations=distance,duration&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`
+    console.log('duration' + url)
+      try {
+        const response = await fetch(url);
+        const json = await response.json();
+        const calcTime = minuteCalc(json.durations[0][1]);
+        setTravelTime(() => {
+          return calcTime;
+        })
+        setDrivingDist(() => {
+          const calcDist = mileCalc(json.distances[0][1]);
+          return calcDist;
+        })
+        const slicedTime = Number(calcTime.slice(0,2));
+        setCurrentETA(calcETA(slicedTime))
+        
+      } catch (error) {
+        console.error(error);
+        //TODO: add a user visibile error
+      } finally {
+        return
+      }
+  }
+
   const renderFooter =
     props => (
-      <BottomSheetFooter {...props} >
-        <View style={{
-          paddingBottom: 20,
-          paddingHorizontal: 0,
-          flex: 1,
-          flexDirection: 'row',
-          gap: 10,
-          shadowColor: 'black',
-          shadowOpacity: 0.1,
-          shadowRadius: 6,
-          backgroundColor: 'white',
-          elevation: 8
-        }}>
+      <BottomSheetFooter {...props}>
+        <View style={styles.footerView}>
           <Pressable 
             style={styles.pressable}
             onPressOut={() => {
@@ -67,15 +85,14 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                 bottomSheetRef.current.snapToIndex(1, animationConfigs);
                 return !wasGetting
               });
+              fetchMatrix('driving', location, [currentDest.longitude, currentDest.latitude]);
             }}
           >
             <Text style={styles.buttonText}>Start</Text>
           </Pressable>
           <Pressable 
             style={styles.pressable}
-            onPress={() => {
-              handleShare();
-            }}
+            onPress={() => {handleShare();}}
           >
             <Text style={styles.buttonText}>Share</Text>
           </Pressable>
@@ -85,11 +102,39 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   
   function minuteCalc(num: number)  {
     const minutes = num/60
+    if(minutes > 1440) {
+      const days = minutes/1440
+      return Math.ceil(days) + 'days'
+    }
     if(minutes > 60) {
       const hours = minutes/60
       return Math.ceil(hours) + 'hours'
     }
-    return Math.ceil(minutes)
+    return Math.ceil(minutes) + ' min'
+  }
+
+  function mileCalc(num: number) {
+    const miles = num * 0.0006213712
+    if(miles > 1) {
+      return miles.toFixed(1) + ' mi'
+    } else {
+      const feet = miles/5280
+      return feet.toFixed(1) + ' ft'
+    }
+  }
+
+  function calcETA(estDrivTime: number) {
+    const currentTime = new Date();
+    const etaTime = new Date(currentTime.getTime() + estDrivTime * 60 * 1000)
+    let h = etaTime.getHours()
+    let m = etaTime.getMinutes().toString().padStart(2, '0');
+    const strH = h.toString().padStart(2, '0');
+
+    if(etaTime.getHours() >= 12) {
+      return(`${strH}:${m} PM`);
+    } if(etaTime.getHours() <= 12){
+      return(`${strH}:${m} AM`);
+    }; 
   }
 
   const handleShare = async() => {
@@ -157,7 +202,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             onPress={() => {
               fitCameraBounds(location, [item.longitude, item.latitude]);
               setStepIndex(0);
-              setCurrentDest(item)
+              setCurrentDest(item);
               setTimeout(() => {
                 bottomSheetRef.current.snapToIndex(2);
               }, 300)
@@ -235,7 +280,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       }}
     > 
       {navigating ? (
-        <View>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between'
+          }}
+        >
           <Pressable
             style={{
               alignSelf:'flex-start', 
@@ -258,6 +308,35 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           >
             <AntDesign name="close" color={'black'} size={50} />
           </Pressable>
+          <View
+            style={{
+              alignItems: 'center'
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 22
+              }}
+            >
+              {travelTime}
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row'
+              }}
+            >
+              <Text>{drivingDist}</Text>
+              <Text
+                style={{
+                  marginHorizontal: 5
+                }}
+              >·</Text>
+              <Text>{currentETA}</Text>
+            </View>
+          </View>
+          <View>
+            <AntDesign name="close" color={'transparent'} size={50} />
+          </View>
         </View>
       ): 
       gettingDirections ? (
@@ -290,7 +369,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                 <AntDesign name="close" color={'red'} size={20} />
               </Pressable>
               <Text style={{fontSize: 22}}>Drive</Text>
-              <Text>Time: {minuteCalc(mapBoxJson.routes[0].legs[0].duration)} min</Text>
+              <Text>Time: {minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
             </View>
           }
         />
@@ -353,6 +432,18 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     padding: 10, 
     color: 'white'
+  }, 
+  footerView: {
+    paddingBottom: 20,
+    paddingHorizontal: 0,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    shadowColor: 'black',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    backgroundColor: 'white',
+    elevation: 8
   }
 })
 export default DestinationList;
