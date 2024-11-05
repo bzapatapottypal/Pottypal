@@ -120,7 +120,7 @@ export default function MainMap() {
     }
   };
 
-  const fitCameraBounds = (start, end) => {
+  const fitCameraBounds = (start: any, end: any) => {
     //setCameraLocation(start);
     camera.current?.fitBounds(start, end, [40, 40], 2000);
     //TODO: Encompass map pointer in zoom out
@@ -137,7 +137,8 @@ export default function MainMap() {
           console.log('empty array')
         }
         if (fetchedData.length === 0) {
-          setHasMore(false);
+          //setHasMore(false);
+          return
         } else {
           setDestination((prevDestinations) => {
             const newDestinations = fetchedData.filter(newDest => 
@@ -194,14 +195,16 @@ export default function MainMap() {
         backgroundColor: '#FFF', 
         padding: 10
       }}>
-        <TouchableOpacity style={{
-          flexDirection: 'row', 
-          alignItems: 'center', 
-          paddingVertical: 0, 
-          paddingHorizontal: 10, 
-          backgroundColor: '#DDD', 
-          borderRadius: 40 
-        }}>
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            paddingVertical: 0, 
+            paddingHorizontal: 10, 
+            backgroundColor: '#DDD', 
+            borderRadius: 40 
+          }}
+        >
           <Feather 
             name="search"
             size={20}
@@ -227,35 +230,6 @@ export default function MainMap() {
         zoom={zoom}
         navigating={navigating}
       />
-      {/*navigating && (
-        <Pressable
-          style={{
-            position: 'absolute',
-            bottom: 100,
-            margin: 10,
-            backgroundColor: '#4681f4', 
-            width: '30%', 
-            alignItems:'center', 
-            borderRadius: 30 
-          }}
-          onPress={() => {
-            if (camera.current) {
-              camera.current.followUserLocation = false
-              setCameraLocation(location)
-            }
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 16, 
-              padding: 10, 
-              color: 'white'
-            }}
-          >
-            Re-center
-          </Text>
-        </Pressable>
-      )*/}
       <DestinationList 
         destination={destination}
         location={location}
@@ -273,6 +247,8 @@ export default function MainMap() {
         setMapBoxJson={setMapBoxJson}
         setRoute={setRoute}
         navigating={navigating}
+        profile={profile}
+        setProfile={setProfile}
       />
     </GestureHandlerRootView>
   )
