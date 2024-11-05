@@ -217,11 +217,14 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     const etaTime = new Date(currentTime.getTime() + estDrivTime * 60 * 1000)
     let h = etaTime.getHours()
     let m = etaTime.getMinutes().toString().padStart(2, '0');
-    const strH = h.toString().padStart(2, '0');
-
     if(etaTime.getHours() >= 12) {
+      if(etaTime.getHours() >= 13) {
+        h = h-12
+      }
+      let strH = h.toString().padStart(2, '0');
       return(`${strH}:${m} PM`);
     } if(etaTime.getHours() <= 12){
+      let strH = h.toString().padStart(2, '0');
       return(`${strH}:${m} AM`);
     }; 
   }

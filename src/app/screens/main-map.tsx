@@ -22,7 +22,7 @@ export default function MainMap() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  //const [hasMore, setHasMore] = useState(true);
   const [searchADA, setSearchADA] = useState(false);
   const [searchUnisex, setSearchUnisex] = useState(false);
   const [route, setRoute] = useState([]);
