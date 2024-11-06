@@ -6,7 +6,7 @@ import Mapbox from '@rnmapbox/maps';
 import * as turf from '@turf/turf';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Speech from 'expo-speech'
-import * as Location from 'expo-location';
+import * as Location from 'expo-location'; 
 
 //import { useLocation } from '@/src/hooks/useLocation';
 
@@ -22,7 +22,7 @@ export default function MainMap() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  //const [hasMore, setHasMore] = useState(true);
   const [searchADA, setSearchADA] = useState(false);
   const [searchUnisex, setSearchUnisex] = useState(false);
   const [route, setRoute] = useState([]);
@@ -120,7 +120,7 @@ export default function MainMap() {
     }
   };
 
-  const fitCameraBounds = (start, end) => {
+  const fitCameraBounds = (start: any, end: any) => {
     //setCameraLocation(start);
     camera.current?.fitBounds(start, end, [40, 40], 2000);
     //TODO: Encompass map pointer in zoom out
@@ -137,7 +137,8 @@ export default function MainMap() {
           console.log('empty array')
         }
         if (fetchedData.length === 0) {
-          setHasMore(false);
+          //setHasMore(false);
+          return
         } else {
           setDestination((prevDestinations) => {
             const newDestinations = fetchedData.filter(newDest => 
@@ -155,23 +156,6 @@ export default function MainMap() {
     }
   };
   
-  const fetchDirections = async (profile: string , start: any[], end: any[]) => {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&voice_instructions=true&roundabout_exits=true&banner_instructions=true&continue_straight=true&annotations=speed,duration,congestion,closure&overview=full&geometries=geojson&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`;
-    console.log(url)
-      try {
-        const response = await fetch(url);
-        const json = await response.json();
-        setMapBoxJson(json);
-        setRoute(json.routes[0].geometry.coordinates);
-        setGettingDirections(true);
-      } catch (error) {
-        console.error(error);
-        //TODO: add a user visibile error
-        return
-      } finally {
-        return
-      }
-  }
   const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
     const to = turf.point(currentCoords);
     const from = turf.point(maneuverCoords);
@@ -211,14 +195,16 @@ export default function MainMap() {
         backgroundColor: '#FFF', 
         padding: 10
       }}>
-        <TouchableOpacity style={{
-          flexDirection: 'row', 
-          alignItems: 'center', 
-          paddingVertical: 0, 
-          paddingHorizontal: 10, 
-          backgroundColor: '#DDD', 
-          borderRadius: 40 
-        }}>
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            paddingVertical: 0, 
+            paddingHorizontal: 10, 
+            backgroundColor: '#DDD', 
+            borderRadius: 40 
+          }}
+        >
           <Feather 
             name="search"
             size={20}
@@ -252,13 +238,17 @@ export default function MainMap() {
         searchADA={searchADA}
         searchUnisex={searchUnisex}
         handleFilter={handleFilter}
-        fetchDirections={fetchDirections}
         fitCameraBounds={fitCameraBounds}
         setStepIndex={setStepIndex}
         gettingDirections={gettingDirections}
         mapBoxJson={mapBoxJson}
         setNavigating={setNavigating}
         setGettingDirections={setGettingDirections}
+        setMapBoxJson={setMapBoxJson}
+        setRoute={setRoute}
+        navigating={navigating}
+        profile={profile}
+        setProfile={setProfile}
       />
     </GestureHandlerRootView>
   )
