@@ -13,7 +13,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const [drivingDist, setDrivingDist] = useState('0 miles');
   const [currentETA, setCurrentETA] = useState('00:00')
 
-
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
     overshootClamping: true,
@@ -21,7 +20,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     restSpeedThreshold: 0.1,
     stiffness: 500,
   });
-
+  
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
@@ -309,7 +308,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   };
 
   const renderDirections = ({ item }) => {
-    const manueverDistance = (item.distance * 0.0006213712).toFixed(1)
+    const dirDistance = (item.distance * 0.0006213712).toFixed(1)
 
     return(
       <View 
@@ -343,7 +342,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               textAlign:'center'
             }}
           >
-            {manueverDistance} mi
+            {dirDistance} mi
           </Text>
           <View style={{flex: 1, height: 1, backgroundColor: 'gray'}} />
         </View>

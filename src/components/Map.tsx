@@ -13,12 +13,11 @@ const Map = ({location, destination, cameraLocation, route, gettingDirections, c
         zoomLevel = {zoom}
         animationMode = {'flyTo'}
         animationDuration= {2000} 
-        followUserLocation = {false}
+        followUserLocation = {navigating}
         followZoomLevel = {15}
         followPitch = {0}
         followUserMode={UserTrackingMode.FollowWithHeading}
         ref = {camera}
-        //heading={180}//in degrees
       />
       {(gettingDirections || navigating) && (
         <Mapbox.ShapeSource id="routeSource" shape={{type: 'LineString', coordinates: route}}>

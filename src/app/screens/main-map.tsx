@@ -32,6 +32,13 @@ export default function MainMap() {
   const [zoom, setZoom] = useState(10);
   const [navigating, setNavigating] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const maneuverRef = useRef({
+    maneuverDist: 0,
+    maneuverCoords:[0,0],
+    currentStep: null
+  });
+  const lastSpoken = useRef('')
+
   const camera = useRef(null);
   
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
@@ -64,31 +71,38 @@ export default function MainMap() {
   }, [])
 
   useEffect(() => {
-    if (hasLocationPermission && location) {
-      loadMoreDestinations(); 
-    }
-  }, [hasLocationPermission, location]);
-
-  useEffect(() => {
     if(!navigating){
       return
     }
+    if(!mapBoxJson) {
+      return
+    }
+  
     let steps = mapBoxJson.routes[0].legs[0].steps
     let currentStep = steps[stepIndex];
     let maneuverCoords = currentStep.maneuver.location;
+    maneuverRef.current.currentStep = currentStep;
+    maneuverRef.current.maneuverCoords = maneuverCoords;
     if (!steps || steps.length === 0) {
       console.log('No steps available');
       return;
     };
+
+    if(currentStep.maneuver === "arrive") {
+      console.log('arrive');
+      Speech.speak('You have arrived.');
+      setNavigating(false);
+    }
+
     if(stepIndex === 0) {
+      Speech.speak(`Let's get started`);
       initialDirection(currentStep);
     }
-    if(currentStep.maneuver === "arrive") {
-      console.log('arrive')
-    }
-    if(stepIndex > 0 && isCloseToManeuver(location, maneuverCoords)) {
-      Speech.speak(currentStep.maneuver.instruction);
-      setStepIndex(prevStep => prevStep + 1);
+    
+    if(stepIndex > 0 && currentStep) {
+      setTimeout(() => {
+        speakManeuver(isCloseToManeuver(location, maneuverCoords));
+      }, 1000)
     }
   }, [stepIndex, mapBoxJson, location]);
   
@@ -100,18 +114,61 @@ export default function MainMap() {
   },[location])
 
   const handleUserLocationUpdate = (location: { coords: { longitude: any; latitude: any; }; }) => {
-    //console.log('getting location', location)
     const coords = [location.coords.longitude, location.coords.latitude]
     setLocation(coords);
     setHasLocationPermission(true);
-    setIsLoading(false)
+    setIsLoading(false);
   };
 
-  const initialDirection = (currentStep: number) => {
+  const initialDirection = (currentStep) => {
     setStepIndex(1);
-    Speech.speak(currentStep.maneuver.instruction)
+    Speech.speak(currentStep.maneuver.instruction);
   }
 
+  function speakManeuver(miles: number) {
+    if (maneuverRef.current.currentStep.maneuver === null) {
+      console.log('was null')
+    }
+    const inst = maneuverRef.current.currentStep.maneuver.instruction 
+
+    switch (true) {
+      case miles < 10 && miles >= 1:
+        if(lastSpoken.current === 'far' ) {
+          setTimeout(() => {
+            lastSpoken.current = '' 
+            return
+          }, 200000)
+        }
+        Speech.speak(`in` + `${(maneuverRef.current.maneuverDist).toFixed(0)} miles,` + `${inst}`);
+        lastSpoken.current = 'far' 
+        break
+      case miles < 1 && miles > 0.018:
+        if(lastSpoken.current === 'near' ) {
+          return
+        }
+        Speech.speak(`in` + `${(maneuverRef.current.maneuverDist * 5280).toFixed(0)} ft,` + `${inst}`);
+        lastSpoken.current = 'near' 
+        break
+      case miles <= 0.018 && miles < 0:
+        Speech.speak(`${inst}`);
+        setStepIndex(prevStep => prevStep + 1);
+        break
+      default:
+        console.log('default swtich');
+        break
+    }
+  }
+  
+  const isCloseToManeuver = (currentCoords, maneuverCoords) => {
+    const to = turf.point(currentCoords);
+    const from = turf.point(maneuverCoords);
+    const options = { units: 'miles' };
+    const distance = turf.distance(from, to, options);
+    maneuverRef.current.maneuverDist = distance;
+    return distance
+    //TODO:if negative go to next direction
+  }
+  
   const handleFilter = (filter: string) => {
     if(filter === 'ADA') {
       setSearchADA(!searchADA)
@@ -155,16 +212,6 @@ export default function MainMap() {
       console.log('Location is not set, cannot load destinations.');
     }
   };
-  
-  const isCloseToManeuver = (currentCoords, maneuverCoords, threshold = .1) => {
-    const to = turf.point(currentCoords);
-    const from = turf.point(maneuverCoords);
-    const options = { units: 'miles' };
-    const distance = turf.distance(from, to, options);
-
-    return distance < threshold
-    //TODO:if negative go to next direction
-  }
 
   if (isLoading) {
     return <ActivityIndicator size="large" />;
