@@ -1,17 +1,19 @@
 import React, { useRef, useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert, RefreshControl } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetDefaultFooterProps } from '@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit}) => {
   const bottomSheetRef = useRef(null);
   const [currentDest, setCurrentDest] = useState('');
   const [travelTime, setTravelTime] = useState<number | string>('0 hours');
   const [drivingDist, setDrivingDist] = useState('0 miles');
-  const [currentETA, setCurrentETA] = useState('00:00')
+  const [currentETA, setCurrentETA] = useState('00:00');
+  
+  
 
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
@@ -399,23 +401,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           >
             <AntDesign name="close" color={'black'} size={50} />
           </Pressable>
-          <View
-            style={{
-              alignItems: 'center'
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 22
-              }}
-            >
-              {travelTime}
-            </Text>
-            <View
-              style={{
-                flexDirection: 'row'
-              }}
-            >
+          <View style={{alignItems: 'center'}}>
+            <Text style={{fontSize: 22}}>{travelTime}</Text>
+            <View style={{flexDirection: 'row'}}>
               <Text>{drivingDist}</Text>
               <Text
                 style={{
@@ -443,7 +431,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           data={filteredDestinations}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderDestination}
-          onEndReached={loadMoreDestinations}
+          onEndReached={() => {
+            loadMoreDestinations(fetchType, searchContent.current);
+          }}
           onEndReachedThreshold={0.5}
           ListFooterComponent={<ActivityIndicator />}
           ListHeaderComponent={
@@ -453,6 +443,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               searchUnisex={searchUnisex}
             />
           }
+          refreshing={refreshingBL} 
+          onRefresh={searchSubmit}
+          
         />
       )}
     </BottomSheet>

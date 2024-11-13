@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Text, View, StyleSheet, ActivityIndicator, Pressable, Linking, TouchableOpacity, TextInput } from 'react-native';
 import { Feather } from "@expo/vector-icons";
 //import * as Location from 'expo-location';
@@ -7,9 +7,6 @@ import * as turf from '@turf/turf';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Speech from 'expo-speech'
 import * as Location from 'expo-location'; 
-
-//import { useLocation } from '@/src/hooks/useLocation';
-
 
 import Map from '@/src/components/Map';
 import DestinationList from '@/src/components/DestinationList';
@@ -32,14 +29,17 @@ export default function MainMap() {
   const [zoom, setZoom] = useState(10);
   const [navigating, setNavigating] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [refreshingBL, setRefreshingBL]= useState(false);
+  const [fetchType, setFetchType] = useState('location');
+
   const maneuverRef = useRef({
     maneuverDist: 0,
     maneuverCoords:[0,0],
     currentStep: null
   });
-  const lastSpoken = useRef('')
-
+  const lastSpoken = useRef(''); 
   const camera = useRef(null);
+  const searchContent = useRef('');
   
   Mapbox.setAccessToken(String(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN));
 
@@ -120,7 +120,7 @@ export default function MainMap() {
     setIsLoading(false);
   };
 
-  const initialDirection = (currentStep) => {
+  const initialDirection = (currentStep: { maneuver: { instruction: string; }; }) => {
     setStepIndex(1);
     Speech.speak(currentStep.maneuver.instruction);
   }
@@ -159,6 +159,14 @@ export default function MainMap() {
     }
   }
   
+  const searchSubmit = useCallback((query: string) => {
+    setFetchType('search');
+    searchContent.current = String(query)
+    setPage(1);
+    setDestination([]);
+    setRefreshingBL(true);
+  }, [])
+
   const isCloseToManeuver = (currentCoords, maneuverCoords) => {
     const to = turf.point(currentCoords);
     const from = turf.point(maneuverCoords);
@@ -185,31 +193,42 @@ export default function MainMap() {
   
   //TODO: add error handling if the api comes up with a undefined result
   //TODO: make the transition for filters removing and adding items smoother
-  const loadMoreDestinations = async () => {
-    if (location && location.length) {
-      try{
-        const response = await fetch(`${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}` );
-        const fetchedData = await response.json();
-        if (fetchedData === '') {
-          console.log('empty array')
-        }
-        if (fetchedData.length === 0) {
-          //setHasMore(false);
-          return
-        } else {
-          setDestination((prevDestinations) => {
-            const newDestinations = fetchedData.filter(newDest => 
-              !prevDestinations.some(prevDest => prevDest.id === newDest.id)
-            );
-            return [...prevDestinations, ...newDestinations];
-          });
-          setPage(prevPage => prevPage + 1);
-        } 
-      } catch(error) {
-        console.error('Error fetching data:', error);
-      }
-    } else {
+  const loadMoreDestinations = async (fetchType: string, query: string) => {
+    if (!location || !location.length) {
       console.log('Location is not set, cannot load destinations.');
+    }
+    try{
+      let fetchURL
+    
+      if (fetchType === 'location') {
+        fetchURL = `${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}`;
+      } else if (fetchType === 'search') {
+        fetchURL = `https://refugerestrooms.org/api/v1/restrooms/search?page=1&per_page=10&offset=0&query=${query}`;
+        console.log(fetchURL)
+      } else {
+        console.log('fetchURL error');
+        //TODO: Add visible error for user
+        return
+      }
+      const response = await fetch(fetchURL);
+      console.log(response)
+      const fetchedData = await response.json();
+      
+      if (fetchedData.length === 0 || fetchedData === '') {
+        //setHasMore(false);
+        console.log('empty array')
+        return
+      } else {
+        setDestination((prevDestinations) => {
+          const newDestinations = fetchedData.filter(newDest => 
+            !prevDestinations.some(prevDest => prevDest.id === newDest.id)
+          );
+          return [...prevDestinations, ...newDestinations];
+        });
+        setPage(prevPage => prevPage + 1);
+      }
+    } catch(error) {
+      console.error('Error fetching data:', error);
     }
   };
 
@@ -258,10 +277,13 @@ export default function MainMap() {
             color="black"
             style={{ marginRight: 10 }}
           />
-          <TextInput 
+          <TextInput
             style={{ 
               flex: 1, 
               padding: 10 
+            }}
+            onSubmitEditing={(e) => {
+              searchSubmit(e.nativeEvent.text)
             }}
             placeholder="Search..."
           />
@@ -296,6 +318,10 @@ export default function MainMap() {
         navigating={navigating}
         profile={profile}
         setProfile={setProfile}
+        refreshingBL={refreshingBL}
+        fetchType={fetchType}
+        searchContent={searchContent}
+        searchSubmit={searchSubmit}
       />
     </GestureHandlerRootView>
   )
