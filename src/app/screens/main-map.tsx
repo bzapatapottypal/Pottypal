@@ -32,7 +32,8 @@ export default function MainMap() {
   const [stepIndex, setStepIndex] = useState(0);
   const [refreshingBL, setRefreshingBL]= useState(false);
   const [fetchType, setFetchType] = useState('location');
-  const [isSearching, setIsSearching] = useState(false)
+  const [isSearching, setIsSearching] = useState(false);
+  const [input, onInput] = useState('')
 
   const maneuverRef = useRef({
     maneuverDist: 0,
@@ -168,6 +169,7 @@ export default function MainMap() {
     //setDestination([]);
     setIsSearching(true)
     //setRefreshingBL(true);
+    //TODO: handle if theres no more results on the next few pages
   }, [])
 
   const isCloseToManeuver = (currentCoords, maneuverCoords) => {
@@ -186,9 +188,6 @@ export default function MainMap() {
     } 
     if (filter === 'unisex') {
       setSearchUnisex(!searchUnisex)
-    }
-    if (filter === 'search') {
-      
     }
   };
 
@@ -284,13 +283,12 @@ export default function MainMap() {
             style={{ marginRight: 10 }}
           />
           <TextInput
-            style={{ 
-              flex: 1, 
-              padding: 10 
+            style={{ flex: 1, padding: 10 }}
+            onChangeText={(text)=> {
+              onInput(text)
+              searchSubmit(input)
             }}
-            onSubmitEditing={(e) => {
-              searchSubmit(e.nativeEvent.text)
-            }}
+            value={input}
             placeholder="Search..."
           />
         </TouchableOpacity>

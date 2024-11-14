@@ -36,8 +36,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
 
     const isSearchComment = isSearching && item.comment.toLowerCase().includes(searchContent.current.toLowerCase())
     return isAdaCompliant && isUnisex && (isSearchName || isSearchComment);
-    
-    
   });
 
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
@@ -372,6 +370,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       backgroundStyle={{backgroundColor: 'rgba(255, 255, 255, 0.9)'}}
       animateOnMount={true}
       footerComponent={gettingDirections ? renderFooter : undefined} 
+      keyboardBehavior={'extend'}
       style={{
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
