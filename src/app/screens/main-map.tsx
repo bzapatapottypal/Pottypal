@@ -164,10 +164,10 @@ export default function MainMap() {
   const searchSubmit = useCallback((query: string) => {
     //setFetchType('search');
     searchContent.current = String(query)
-    setPage(1);
-    setDestination([]);
+    //setPage(1);
+    //setDestination([]);
     setIsSearching(true)
-    setRefreshingBL(true);
+    //setRefreshingBL(true);
   }, [])
 
   const isCloseToManeuver = (currentCoords, maneuverCoords) => {
@@ -237,7 +237,7 @@ export default function MainMap() {
     } catch(error) {
       console.error('Error fetching data:', error);
     } finally {
-      setIsLoading(false);
+      //setIsLoading(false);
     }
   };
 
