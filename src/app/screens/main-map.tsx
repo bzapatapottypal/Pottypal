@@ -10,6 +10,7 @@ import * as Location from 'expo-location';
 
 import Map from '@/src/components/Map';
 import DestinationList from '@/src/components/DestinationList';
+import SearchFilters from '@/src/components/SearchFilters';
 
 export default function MainMap() {
   const [location, setLocation] = useState(null);
@@ -31,6 +32,7 @@ export default function MainMap() {
   const [stepIndex, setStepIndex] = useState(0);
   const [refreshingBL, setRefreshingBL]= useState(false);
   const [fetchType, setFetchType] = useState('location');
+  const [isSearching, setIsSearching] = useState(false)
 
   const maneuverRef = useRef({
     maneuverDist: 0,
@@ -160,10 +162,11 @@ export default function MainMap() {
   }
   
   const searchSubmit = useCallback((query: string) => {
-    setFetchType('search');
+    //setFetchType('search');
     searchContent.current = String(query)
     setPage(1);
     setDestination([]);
+    setIsSearching(true)
     setRefreshingBL(true);
   }, [])
 
@@ -177,11 +180,15 @@ export default function MainMap() {
     //TODO:if negative go to next direction
   }
   
-  const handleFilter = (filter: string) => {
+  const handleFilter = (filter: string, query:string) => {
     if(filter === 'ADA') {
       setSearchADA(!searchADA)
-    } if (filter ==='unisex') {
+    } 
+    if (filter === 'unisex') {
       setSearchUnisex(!searchUnisex)
+    }
+    if (filter === 'search') {
+      
     }
   };
 
@@ -201,12 +208,9 @@ export default function MainMap() {
       let fetchURL
     
       if (fetchType === 'location') {
-        fetchURL = `${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=10&offset=0&lat=${location[1]}&lng=${location[0]}`;
-      } else if (fetchType === 'search') {
-        fetchURL = `https://refugerestrooms.org/api/v1/restrooms/search?page=1&per_page=10&offset=0&query=${query}`;
-        console.log(fetchURL)
+        fetchURL = `${REFUGE_ENDPOINT}/by_location?page=${String(page)}&per_page=20&offset=0&lat=${location[1]}&lng=${location[0]}`;
       } else {
-        console.log('fetchURL error');
+        console.log('fetchURL if/else error');
         //TODO: Add visible error for user
         return
       }
@@ -214,21 +218,26 @@ export default function MainMap() {
       console.log(response)
       const fetchedData = await response.json();
       
-      if (fetchedData.length === 0 || fetchedData === '') {
+      if (fetchedData.length === 0 || fetchedData === '' || !fetchedData) {
+        //TODO: add condfition for if fetchedData.filter isnt a fucntion, likely when refuge runs out of pages to render
         //setHasMore(false);
         console.log('empty array')
         return
       } else {
         setDestination((prevDestinations) => {
+          
           const newDestinations = fetchedData.filter(newDest => 
             !prevDestinations.some(prevDest => prevDest.id === newDest.id)
           );
+
           return [...prevDestinations, ...newDestinations];
         });
         setPage(prevPage => prevPage + 1);
       }
     } catch(error) {
       console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -257,10 +266,7 @@ export default function MainMap() {
 
   return(
     <GestureHandlerRootView style={styles.container}> 
-      <View style={{
-        backgroundColor: '#FFF', 
-        padding: 10
-      }}>
+      <View style={{backgroundColor: '#FFF', padding: 10}}>
         <TouchableOpacity 
           style={{
             flexDirection: 'row', 
@@ -322,6 +328,8 @@ export default function MainMap() {
         fetchType={fetchType}
         searchContent={searchContent}
         searchSubmit={searchSubmit}
+        setPage={setPage}
+        isSearching={isSearching}
       />
     </GestureHandlerRootView>
   )

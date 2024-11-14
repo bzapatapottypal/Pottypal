@@ -6,7 +6,7 @@ const SearchFilters = ({handleFilter, searchADA, searchUnisex}) => {
       <Pressable 
         style={[styles.button, { backgroundColor: searchADA ? 'gray' : 'transparent' }]}
         onPress={() =>{
-          handleFilter('ADA')
+          handleFilter('ADA', '')
         }}
       >
         <Text style={{padding: 5}}>ada toggle</Text>   
@@ -14,7 +14,7 @@ const SearchFilters = ({handleFilter, searchADA, searchUnisex}) => {
       <Pressable 
         style={[styles.button, { backgroundColor: searchUnisex ? 'gray' : 'transparent' }]}
         onPressOut={() => {
-          handleFilter('unisex')
+          handleFilter('unisex', '')
         }}
       >
         <Text style={{padding: 5}}>unisex toggle</Text>   

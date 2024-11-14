@@ -6,14 +6,12 @@ import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpri
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetDefaultFooterProps } from '@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types';
 
-const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit}) => {
+const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit, setPage, isSearching}) => {
   const bottomSheetRef = useRef(null);
   const [currentDest, setCurrentDest] = useState('');
   const [travelTime, setTravelTime] = useState<number | string>('0 hours');
   const [drivingDist, setDrivingDist] = useState('0 miles');
   const [currentETA, setCurrentETA] = useState('00:00');
-  
-  
 
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
@@ -26,7 +24,20 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
-    return isAdaCompliant && isUnisex;
+    if (!searchContent.current) {
+      console.log('search undefined')
+      return isAdaCompliant && isUnisex
+    }
+    const isSearchName = isSearching && item.name.toLowerCase().includes(searchContent.current.toLowerCase())
+
+    if(!item.comment) {
+      return isAdaCompliant && isUnisex && isSearchName
+    } 
+
+    const isSearchComment = isSearching && item.comment.toLowerCase().includes(searchContent.current.toLowerCase())
+    return isAdaCompliant && isUnisex && (isSearchName || isSearchComment);
+    
+    
   });
 
   const fetchDirections = async (profile: string , start: any[], end: any[]) => {
