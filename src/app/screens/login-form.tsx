@@ -1,92 +1,120 @@
-import { useState } from "react";
-import { Text, View, StyleSheet, Button, TextInput } from "react-native";
+import { useEffect, useState } from "react";
+import { Text, View, StyleSheet, Button, TextInput, Pressable } from "react-native";
 import { FIREBASE_AUTH } from "../../../firebaseConfig"
-import { getAuth, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signInWithRedirect } from "firebase/auth";
+import { getAuth, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signInWithRedirect, signOut } from "firebase/auth";
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes
+} from '@react-native-google-signin/google-signin';
 
 export default function FormTest() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [user, setUser] = useState(null)
+  const [isInProgress, setInProgress] = useState(false)
+  const [isLoggedIn, setLoggedIn] = useState(false)
+  
+  const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
 
   const auth = FIREBASE_AUTH;
   auth.useDeviceLanguage();
+   
+  useEffect(() => {
+    GoogleSignin.configure({
+      //offlineAccess: true,
+  
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      scopes: ['profile', 'email'],
+      offlineAccess: true
+    });
+  }, []);
+
+  useEffect(() => {
+    const subscriber = onAuthStateChanged(onAuthStateChanged);
+    return subscriber; // unsubscribe on unmount
+  }, []);
+
  
-  getRedirectResult(auth)
-    .then((result) => {
-      // This gives you a Google Access Token. You can use it to access Google APIs.
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      const token = credential.accessToken;
-
-      // The signed-in user info.
-      const user = result.user;
-      // IdP data available using getAdditionalUserInfo(result)
-      // ...
-    }).catch((error) => {
-      // Handle Errors here.
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      // The email of the user's account used.
-      const email = error.customData.email;
-      // The AuthCredential type that was used.
-      const credential = GoogleAuthProvider.credentialFromError(error);
-      // ...
-    });
-    
-    onAuthStateChanged(auth, function (user) {
-      if (user) {
-        // User is signed in.
-        const displayName = user.displayName;
-        const email = user.email;
-        const emailVerified = user.emailVerified;
-        const photoURL = user.photoURL;
-        const isAnonymous = user.isAnonymous;
-        const uid = user.uid;
-        const providerData = user.providerData;
-        
-      } else {
-        // User is signed out.
-
-      }
-      //enable sign out button
-    });
-  const signIn = () => {
-    if(!auth.currentUser) {
-      const provider = new GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
-      provider.setCustomParameters({
-        'login_hint': 'user@example.com'
-      });
-      signInWithRedirect(auth, provider);
-    }
-    
+  function onAuthStateChanged(user) {
+    setUser(user);
+    if (user) setLoggedIn(true);
+    else setLoggedIn(false);
+    if (isInProgress) setInProgress(false);
   }
+  
+  const handleSignIn = async () => {
+    setInProgress(true);
+    //console.log('sign in')
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const googleCredential = GoogleAuthProvider.credential(response.data?.idToken);
+      setUser(response.data);
+      setLoggedIn(true);
+      
+      return signInWithCredential(auth, googleCredential);
+    } catch (error) {
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.IN_PROGRESS:
+            // operation (eg. sign in) already in progress
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            // Android only, play services not available or outdated
+            break;
+          default:
+          // some other error happened
+        }
+      } else {
+        // an error that's not related to google sign in occurred
+      }
+    }
+    setInProgress(false);
+  };
 
+  const handleSignOut = async () => {
+    try {
+      await GoogleSignin.revokeAccess();
+      await GoogleSignin.signOut();
+      signOut(auth)
+        .then(() => console.log("User signed out!"));
+      setLoggedIn(false);
+      setUser(null);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  if(!user) {
+    return(
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignSelf: 'center'
+        }}
+      >
+        <GoogleSigninButton
+        size={GoogleSigninButton.Size.Wide}
+        color={GoogleSigninButton.Color.Dark}
+        onPress={() => {
+          handleSignIn()
+        }}
+        disabled={isInProgress}
+      />
+      </View>
+    )
+  }
   return(
-    <View style={styles.container}>
-      <TextInput 
-        style = {styles.input}
-        value = {email}
-        placeholder = "email"
-        placeholderTextColor = "gray"
-        autoCapitalize="none"
-        onChangeText={(text) => setEmail(text)}
+    <View>
+      <Pressable
+        onPress={() => {
+          handleSignOut();
+        }}
       >
-      </TextInput>
-      <TextInput 
-        style = {styles.input}
-        secureTextEntry = {true}
-        value = {password}
-        placeholder = "password"
-        placeholderTextColor = "gray"
-        autoCapitalize="none"
-        onChangeText={(text) => setPassword(text)}
-      >
-      </TextInput>
-      <View style= {styles.button}>
-        <Button title="Sign Up" onPress={() => signUp()}></Button>
-      </View>
-      <View style= {styles.button}>
-       <Button title="Login" onPress={() => signIn()}></Button>
-      </View>
+        <Text>Log Out</Text>
+      </Pressable>
     </View>
   )
 }
