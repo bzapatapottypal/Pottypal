@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Text, View, StyleSheet, Button, TextInput, Pressable } from "react-native";
 import { fbApp, FIREBASE_AUTH, } from "../../../firebaseConfig"
-import auth from "@react-native-firebase/auth"
-
+import { getAuth, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signInWithRedirect, signOut } from "firebase/auth";
 import {
   GoogleSignin,
   GoogleSigninButton,
@@ -10,6 +9,7 @@ import {
   isSuccessResponse,
   statusCodes
 } from '@react-native-google-signin/google-signin';
+import { getApp } from "firebase/app";
 
 export default function FormTest() {
   const [user, setUser] = useState(null)
@@ -18,10 +18,10 @@ export default function FormTest() {
   
   const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
 
-  //const currentFirebase = fbApp
-  //const currentAuth = getAuth();
-  //console.log(currentAuth)
-  //auth.useDeviceLanguage();
+  const currentFirebase = fbApp
+  const auth = getAuth(currentFirebase);
+  console.log(auth)
+  auth.useDeviceLanguage();
    
   useEffect(() => {
     GoogleSignin.configure({
@@ -34,7 +34,7 @@ export default function FormTest() {
   }, []);
 
   useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
+    const subscriber = onAuthStateChanged(onAuthStateChanged);
     return subscriber; // unsubscribe on unmount
   }, []);
 
@@ -51,17 +51,11 @@ export default function FormTest() {
     //console.log('sign in')
     try {
       await GoogleSignin.hasPlayServices();
-      const signInResult  = await GoogleSignin.signIn();
-
-      let idToken = signInResult.data?.idToken;
-      if (!idToken) {
-        throw new Error('No ID token found');
-      }
-
-      const googleCredential = auth.GoogleAuthProvider.credential(signInResult.data.idToken);
-      setUser(signInResult.data);
+      const response = await GoogleSignin.signIn();
+      const googleCredential = GoogleAuthProvider.credential(response.data?.idToken);
+      setUser(response.data);
       setLoggedIn(true);
-      return auth().signInWithCredential(googleCredential);
+      return signInWithCredential(auth, googleCredential);
     } catch (error) {
       if (isErrorWithCode(error)) {
         switch (error.code) {
@@ -88,8 +82,7 @@ export default function FormTest() {
     try {
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
-      auth()
-        .signOut()
+      signOut(auth)
         .then(() => console.log("User signed out!"));
       setLoggedIn(false);
       setUser(null);

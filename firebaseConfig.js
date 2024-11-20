@@ -1,6 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, setDoc, updateDoc} from 'firebase/firestore'
+import { initializeApp } from '@react-native-firebase/app';
+import { getReactNativePersistence, initializeAuth } from '@react-native-firebase/auth';
+import { getFirestore } from '@react-native-firebase/firestore'
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 
 // Initialize Firebase
@@ -13,32 +14,16 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
+
 
 // For more information on how to access Firebase in your project,
 // see the Firebase documentation: https://firebase.google.com/docs/web/setup#access-firebase
 
 // Initialize Firebase Authentication and get a reference to the service
-const auth = getAuth(app);
 
-export const FIREBASE_APP = initializeApp(firebaseConfig);
-export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
-export const FIREBASE_FIRESTORE = getFirestore(FIREBASE_APP)
-
-
-//boilerplate firestore
-/*
-const testDocument = doc(firestore, 'test-path-to-document/testdocument')
-function writeTestDocument() {
-  const testData = {
-    description: 'parameter',
-    number: 1212343,
-    boolean: true,
-    review: 'balhblahhblah'
-  }
-  updateDoc(testDocument, testData, { merge: true })
-}
-console.log('firestore')
-
-*/
+export const fbApp = initializeApp(firebaseConfig);
+export const FIREBASE_AUTH = initializeAuth(fbApp, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+export const FIREBASE_FIRESTORE = getFirestore(fbApp)
 
