@@ -1,28 +1,23 @@
 import { useEffect, useState } from "react";
-import { Text, View, StyleSheet, Button, TextInput, Pressable } from "react-native";
-import { fbApp, FIREBASE_AUTH, } from "../../../firebaseConfig"
-import { getAuth, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signInWithCredential, signInWithRedirect, signOut } from "firebase/auth";
+import { Text, View, StyleSheet, Pressable } from "react-native";
+import auth from "@react-native-firebase/auth"
+
+import {genUser} from "@/src/components/GenData";
+
 import {
   GoogleSignin,
   GoogleSigninButton,
   isErrorWithCode,
-  isSuccessResponse,
   statusCodes
 } from '@react-native-google-signin/google-signin';
-import { getApp } from "firebase/app";
 
-export default function FormTest() {
-  const [user, setUser] = useState(null)
+export default function FirebaseSignIn({user, setUser, setUserData, setLoggedIn}) {
   const [isInProgress, setInProgress] = useState(false)
-  const [isLoggedIn, setLoggedIn] = useState(false)
   
   const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
 
-  const currentFirebase = fbApp
-  const auth = getAuth(currentFirebase);
-  console.log(auth)
-  auth.useDeviceLanguage();
-   
+  //TODO: Add apple sign in(REQUIRED for their guidelines)
+  
   useEffect(() => {
     GoogleSignin.configure({
       //offlineAccess: true,
@@ -34,7 +29,7 @@ export default function FormTest() {
   }, []);
 
   useEffect(() => {
-    const subscriber = onAuthStateChanged(onAuthStateChanged);
+    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
     return subscriber; // unsubscribe on unmount
   }, []);
 
@@ -51,11 +46,21 @@ export default function FormTest() {
     //console.log('sign in')
     try {
       await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      const googleCredential = GoogleAuthProvider.credential(response.data?.idToken);
-      setUser(response.data);
+      const signInResult  = await GoogleSignin.signIn();
+      //console.log(signInResult.data)
+      let idToken = signInResult.data?.idToken;
+      if (!idToken) {
+        throw new Error('No ID token found');
+      }
+
+      const googleCredential = auth.GoogleAuthProvider.credential(signInResult.data.idToken);
+      setUser(signInResult.data);
       setLoggedIn(true);
-      return signInWithCredential(auth, googleCredential);
+
+      auth().signInWithCredential(googleCredential);
+
+      setUserData(signInResult.data.user)
+      genUser(signInResult.data.user)
     } catch (error) {
       if (isErrorWithCode(error)) {
         switch (error.code) {
@@ -79,13 +84,14 @@ export default function FormTest() {
   };
 
   const handleSignOut = async () => {
+    setUser(null);
     try {
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
-      signOut(auth)
+      auth()
+        .signOut()
         .then(() => console.log("User signed out!"));
       setLoggedIn(false);
-      setUser(null);
     } catch (error) {
       console.error(error);
     }
@@ -101,23 +107,24 @@ export default function FormTest() {
         }}
       >
         <GoogleSigninButton
-        size={GoogleSigninButton.Size.Wide}
-        color={GoogleSigninButton.Color.Dark}
-        onPress={() => {
-          handleSignIn()
-        }}
-        disabled={isInProgress}
-      />
-      <Pressable
-        onPress={() => {
-          handleSignOut();
-        }}
-      >
-        <Text>Log Out</Text>
-      </Pressable>
+          size={GoogleSigninButton.Size.Wide}
+          color={GoogleSigninButton.Color.Dark}
+          onPress={() => {
+            handleSignIn()
+          }}
+          disabled={isInProgress}
+        />
+        <Pressable
+          onPress={() => {
+            handleSignOut();
+          }}
+        >
+          <Text>Log Out</Text>
+        </Pressable>
       </View>
     )
   }
+
   return(
     <View>
       <Pressable

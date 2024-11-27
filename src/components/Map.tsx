@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import Mapbox, { Camera, LocationPuck, MapView, UserTrackingMode } from '@rnmapbox/maps';
 import { View } from 'react-native';
 
-const Map = ({location, destination, cameraLocation, route, gettingDirections, camera, zoom, navigating}) => {
+const Map = ({destination, cameraLocation, route, gettingDirections, camera, zoom, navigating}) => {
   return(
     <MapView 
       style={{flex: 1, zIndex: -1}}

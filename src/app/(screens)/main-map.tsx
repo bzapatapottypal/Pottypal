@@ -294,7 +294,7 @@ export default function MainMap() {
         </TouchableOpacity>
       </View>
       <Map 
-        location={location}
+        //location={location}
         destination={destination}
         cameraLocation={cameraLocation}
         route={route} 

@@ -1,16 +1,10 @@
-import { Stack } from "expo-router";
+import { Stack, Tabs } from "expo-router";
 
 
 export default function RootLayout() {
   return (
     <Stack>
-      <Stack.Screen 
-      name="index" 
-      options={{
-        // Hide the header for this route
-        headerShown: false,
-      }}
-      />
+      <Stack.Screen name="(screens)" options={{ headerShown: false }} />
     </Stack>
   );
 }

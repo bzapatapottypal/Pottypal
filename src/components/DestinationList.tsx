@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert, RefreshControl } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert, RefreshControl, TextInput } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetDefaultFooterProps } from '@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types';
+import { genReview } from './GenData';
+import auth from '@react-native-firebase/auth';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit, setPage, isSearching}) => {
   const bottomSheetRef = useRef(null);
@@ -12,6 +14,8 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const [travelTime, setTravelTime] = useState<number | string>('0 hours');
   const [drivingDist, setDrivingDist] = useState('0 miles');
   const [currentETA, setCurrentETA] = useState('00:00');
+  const [overview, openOverview] = useState(false)
+  const [revInput, setRevInput] = useState('')
 
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
@@ -56,7 +60,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       }
   }
 
-  const fetchMatrix = async (profile, start, end) => {
+  const fetchMatrix = async (profile: any, start: any[], end: any[]) => {
     const url = `https://api.mapbox.com/directions-matrix/v1/mapbox/${profile}/${start[0]},${start[1]};${end[0]},${end[1]}?&annotations=distance,duration&access_token=${process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN}`
     console.log('duration' + url)
       try {
@@ -224,12 +228,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
 
   function calcETA(estDrivTime: number) {
     const currentTime = new Date();
-    const etaTime = new Date(currentTime.getTime() + estDrivTime * 60 * 1000)
-    let h = etaTime.getHours()
+    const etaTime = new Date(currentTime.getTime() + estDrivTime * 60 * 1000);
+    let h = etaTime.getHours();
     let m = etaTime.getMinutes().toString().padStart(2, '0');
     if(etaTime.getHours() >= 12) {
       if(etaTime.getHours() >= 13) {
-        h = h-12
+        h = h-12;
       }
       let strH = h.toString().padStart(2, '0');
       return(`${strH}:${m} PM`);
@@ -262,6 +266,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const renderDestination = ({ item }) => {
     const to = turf.point([item.longitude, item.latitude])
     const from = turf.point(location)
+
     var options = { units: "miles" };
 
     if (!item.latitude || !item.longitude) {
@@ -295,6 +300,30 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             <Text style={styles.line}>Changing Table: {item.changing_table ? 'Yes' : 'No'}</Text>
           </View>
           <Text style={styles.line}>Comment: {item.comment}</Text>
+          <TouchableOpacity 
+            style={{
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              paddingVertical: 0, 
+              paddingHorizontal: 10, 
+              backgroundColor: '#DDD', 
+              borderRadius: 40 
+            }}
+          >
+            <TextInput 
+              style={{ flex: 1, padding: 10 }}
+              placeholder='Write a review'
+              value={revInput}
+              onChangeText={(text)=> {
+                setRevInput(text)
+              }}
+              onSubmitEditing={(text) => {
+                //console.log(auth().currentUser?.providerData)
+                genReview(text.nativeEvent.text, item.id)
+              }}  
+            />
+        </TouchableOpacity>
+          
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
           <Pressable 
             onPressOut={() => {
@@ -427,7 +456,51 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             <AntDesign name="close" color={'transparent'} size={50} />
           </View>
         </View>
-      ): 
+      ): overview ? (
+        <View>
+          <View>
+            <Text>Title</Text>
+          </View>
+          <Pressable
+            style={{
+              alignSelf:'flex-end', 
+              borderRadius: 20, 
+              borderColor:'red', 
+              borderStyle: 'solid', 
+              borderWidth: 1
+            }}
+            onPressOut={() => {
+              bottomSheetRef.current.collapse();
+            }}
+            onPress={() => {
+              setTimeout(() => {
+                setGettingDirections((wasGetting:boolean) => {
+                  bottomSheetRef.current.snapToIndex(2, animationConfigs);
+                  return !wasGetting
+                });
+              }, 600)
+            }}
+          >
+            <AntDesign name="close" color={'red'} size={20} />
+          </Pressable>
+          <Pressable
+            style={styles.directTab}
+            onPress={() => {
+              if(profile === 'driving') {
+                return;
+              };
+              setProfile('driving');
+              fetchDirections('driving', location, [currentDest.longitude, currentDest.latitude]);
+            }}
+          ></Pressable>
+          <View>
+            <View>
+              <Text>Reviews</Text>
+            </View>
+            
+          </View>
+        </View>
+      ) :
       gettingDirections ? (
         <BottomSheetFlatList
           data={mapBoxJson.routes[0].legs[0].steps}
