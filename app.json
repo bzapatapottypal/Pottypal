@@ -28,9 +28,14 @@
       ],
       "package": "com.romanbdass.firebasetest"
     },
+    "androidStatusBar": {
+      "backgroundColor": "#000",
+      "translucent": false
+    },
     "web": {
       "bundler": "metro",
       "output": "static",
+      //TODO: add proper favicon
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

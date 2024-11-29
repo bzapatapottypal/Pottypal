@@ -27,51 +27,27 @@ export const genUser = async (user: { id: string; name: string; email: string; p
   }
 }
 
-export const genReview = async (content: string, locationID) => {
-    const user = auth().currentUser?.providerData[0] || null
-    const reviewRef = db.collection('reviews')
-    console.log(user)
-    if(!user) {
-      console.log('user undefined')
-    }
-    reviewRef.add({
-      userID: user.uid,
-      user: user.displayName,
-      locationID: locationID,
-      content: content,
-      createdAt: new Date(),
-      //TODO: editing capability and edited on dates
-      editedAt: new Date(),
-      score: 'number between 1-5'
-    })
-    .then((docRef) => {
-      console.log('Document written with ID: ', docRef.id);
-    })
-    .catch((error) => {
-      console.error('Error adding document: ', error);
-    });
-}
-
-export function CollectData({ userData }) {
-  //const [text, onChangeText] = useState('')
-
-  {/*
-    if (__DEV__) {
-    firestore().useEmulator('localhost', 8080);
-    }
-    
-  */}
-  //ref.where('userId', '==', 'user1')
-  
-  return(
-    <View>
-      <TextInput 
-        placeholder="write review"
-        onSubmitEditing={(text) => {
-          
-          genReview(text.nativeEvent.text, -2)
-        }}
-      />
-    </View>
-  )
+export const genReview = async (content: string, locationID: any) => {
+  const user = auth().currentUser?.providerData[0] || null
+  const reviewRef = db.collection('reviews')
+  console.log(user)
+  if(!user) {
+    console.log('user undefined')
+  }
+  reviewRef.add({
+    userID: user.uid,
+    user: user.displayName,
+    locationID: locationID,
+    content: content,
+    createdAt: new Date(),
+    //TODO: editing capability and edited on dates
+    editedAt: new Date(),
+    score: 'number between 1-5'
+  })
+  .then((docRef) => {
+    console.log('Document written with ID: ', docRef.id);
+  })
+  .catch((error) => {
+    console.error('Error adding document: ', error);
+  });
 }
