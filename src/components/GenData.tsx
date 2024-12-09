@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, View, Text } from "react-native";
 import firestore, {getDoc} from '@react-native-firebase/firestore';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
@@ -27,7 +27,7 @@ export const genUser = async (user: { id: string; name: string; email: string; p
   }
 }
 
-export const genReview = async (content: string, locationID: any) => {
+export const genReview = async (content: string, locationID: any, score) => {
   const user = auth().currentUser?.providerData[0] || null
   const reviewRef = db.collection('reviews')
   console.log(user)
@@ -42,7 +42,7 @@ export const genReview = async (content: string, locationID: any) => {
     createdAt: new Date(),
     //TODO: editing capability and edited on dates
     editedAt: new Date(),
-    score: 'number between 1-5'
+    score: score
   })
   .then((docRef) => {
     console.log('Document written with ID: ', docRef.id);
@@ -51,3 +51,23 @@ export const genReview = async (content: string, locationID: any) => {
     console.error('Error adding document: ', error);
   });
 }
+
+{/*
+  export const getReviews = () => {
+    const reviewsRef = useRef([])
+    
+    const reviewsDb = firestore().collection('reviews')
+    const querySnapshot = reviewsDb.where("locationID", "==", 68812)
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+            reviewsRef.current = [...reviewsRef.current, (doc.id, " => ", doc.data())]
+            console.log(reviewsRef)
+        });
+    })
+    .catch((error) => {
+        console.log("Error getting documents: ", error);
+    });
+  }
+*/}

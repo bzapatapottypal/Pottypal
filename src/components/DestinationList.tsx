@@ -1,12 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert, RefreshControl, TextInput } from 'react-native';
 import * as turf from '@turf/turf'
 import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BottomSheetDefaultFooterProps } from '@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types';
-import { genReview } from './GenData';
 import auth from '@react-native-firebase/auth';
+import WriteReview, { RenderReview } from '../app/(screens)/Details';
+import firestore from '@react-native-firebase/firestore';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit, setPage, isSearching}) => {
   const bottomSheetRef = useRef(null);
@@ -15,7 +16,10 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const [drivingDist, setDrivingDist] = useState('0 miles');
   const [currentETA, setCurrentETA] = useState('00:00');
   const [overview, openOverview] = useState(false)
-  const [revInput, setRevInput] = useState('')
+  const [fbUsers, setFbUsers] = useState()
+  const [reviews, setReviews] = useState([]);
+  const [showingReviews, setShowingReviews] = useState(false);
+  
 
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
@@ -25,6 +29,46 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     stiffness: 500,
   });
   
+  useEffect(() => {
+    const subscriber = firestore()
+      .collection('reviews')
+      .onSnapshot(querySnapshot => {
+        const reviews: ((prevState: never[]) => never[]) | { key: string }[] = [];
+  
+        querySnapshot.forEach(documentSnapshot => {
+          reviews.push({
+            ...documentSnapshot.data(),
+            key: documentSnapshot.id,
+          });
+        });
+        setReviews(reviews);
+      });
+  
+    // Unsubscribe from events when no longer in use
+    return () => subscriber();
+  }, []);
+
+  useEffect(() => {
+    const subscriber = firestore()
+      .collection('users')
+      .onSnapshot(querySnapshot => {
+        const users: ((prevState: never[]) => never[]) | { key: string }[] = [];
+  
+        querySnapshot.forEach(documentSnapshot => {
+          users.push({
+            ...documentSnapshot.data(),
+            key: documentSnapshot.id,
+          });
+        });
+        setFbUsers(users);
+        //console.log(fbUsers)
+      });
+      
+    // Unsubscribe from events when no longer in use
+    return () => subscriber();
+  }, []);
+
+
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
@@ -113,94 +157,127 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     </BottomSheetFooter>
   )
 
-  const renderHeader = () => (
-    <View 
-      style={{
-        margin: 5,
-        justifyContent:'space-between'
-      }}
-    >
-      <Pressable
-        style={{
-          alignSelf:'flex-end', 
-          borderRadius: 20, 
-          borderColor:'red', 
-          borderStyle: 'solid', 
-          borderWidth: 1
-        }}
-        onPressOut={() => {
-          bottomSheetRef.current.collapse();
-        }}
-        onPress={() => {
-          setTimeout(() => {
-            setGettingDirections((wasGetting:boolean) => {
-              bottomSheetRef.current.snapToIndex(2, animationConfigs);
-              return !wasGetting
-            });
-          }, 600)
-        }}
-      >
-        <AntDesign name="close" color={'red'} size={20} />
-      </Pressable>
-      <Text style={{fontSize: 22}}>Drive</Text>
+  const renderHeader = () => {
+    return(
       <View
         style={{
-          justifyContent: 'space-between',
-          flexDirection: 'row',
-          marginTop: 10
+          margin: 5,
+          justifyContent:'space-between'
         }}
       >
-        <View style={styles.directContainer}>
-          <Pressable
-            style={styles.directTab}
-            onPress={() => {
-              if(profile === 'driving') {
-                return;
-              };
-              setProfile('driving');
-              fetchDirections('driving', location, [currentDest.longitude, currentDest.latitude]);
-            }}
-          >
-            <AntDesign name="car" color={'blue'} size={20} style={{marginRight:5}}/>
-            <Text>{profile === 'driving' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
-          </Pressable>
-          {profile === 'driving' && <View style={styles.highlightedTab} />}
-        </View>
-        <View style={styles.directContainer}>
-          <Pressable
-            style={styles.directTab}
-            onPress={() => {
-              if(profile === 'cycling') {
-                return;
-              };
-              setProfile('cycling');
-              fetchDirections('cycling', location, [currentDest.longitude, currentDest.latitude]);
-            }}
-          >
-            <MaterialCommunityIcons name="bike" color={'blue'} size={20} style={{marginRight:5}}/>
-            <Text>{profile === 'cycling' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
-          </Pressable>
-          {profile === 'cycling' && <View style={styles.highlightedTab} />}
-        </View>
-        <View style={styles.directContainer}>
-          <Pressable
-            style={styles.directTab}
-            onPress={() => {
-              if(profile === 'walking') {
-                return;
-              };
-              setProfile('walking');
-              fetchDirections('walking', location, [currentDest.longitude, currentDest.latitude]);
-            }}
-          >
-            <MaterialCommunityIcons name="walk" color={'blue'} size={20} style={{marginRight:5}}/>
-            <Text>{profile === 'walking' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
-          </Pressable>
-          {profile === 'walking' && <View style={styles.highlightedTab} />}
-        </View>
+        {gettingDirections ? (
+          <View>
+            <Pressable
+              style={{
+                alignSelf:'flex-end', 
+                borderRadius: 20, 
+                borderColor:'red', 
+                borderStyle: 'solid', 
+                borderWidth: 1
+              }}
+              onPressOut={() => {
+                bottomSheetRef.current.collapse();
+              }}
+              onPress={() => {
+                setTimeout(() => {
+                  setGettingDirections((wasGetting:boolean) => {
+                    bottomSheetRef.current.snapToIndex(2, animationConfigs);
+                    return !wasGetting
+                  });
+                }, 600)
+              }}
+            >
+              <AntDesign name="close" color={'red'} size={20} />
+            </Pressable>
+            <Text style={{fontSize: 22}}>Drive</Text>
+            <View
+              style={{
+                justifyContent: 'space-between',
+                flexDirection: 'row',
+                marginTop: 10
+              }}
+            >
+              <View style={styles.directContainer}>
+                <Pressable
+                  style={styles.directTab}
+                  onPress={() => {
+                    if(profile === 'driving') {
+                      return;
+                    };
+                    setProfile('driving');
+                    fetchDirections('driving', location, [currentDest.longitude, currentDest.latitude]);
+                  }}
+                >
+                  <AntDesign name="car" color={'blue'} size={20} style={{marginRight:5}}/>
+                  <Text>{profile === 'driving' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
+                </Pressable>
+                {profile === 'driving' && <View style={styles.highlightedTab} />}
+              </View>
+              <View style={styles.directContainer}>
+                <Pressable
+                  style={styles.directTab}
+                  onPress={() => {
+                    if(profile === 'cycling') {
+                      return;
+                    };
+                    setProfile('cycling');
+                    fetchDirections('cycling', location, [currentDest.longitude, currentDest.latitude]);
+                  }}
+                >
+                  <MaterialCommunityIcons name="bike" color={'blue'} size={20} style={{marginRight:5}}/>
+                  <Text>{profile === 'cycling' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
+                </Pressable>
+                {profile === 'cycling' && <View style={styles.highlightedTab} />}
+              </View>
+              <View style={styles.directContainer}>
+                <Pressable
+                  style={styles.directTab}
+                  onPress={() => {
+                    if(profile === 'walking') {
+                      return;
+                    };
+                    setProfile('walking');
+                    fetchDirections('walking', location, [currentDest.longitude, currentDest.latitude]);
+                  }}
+                >
+                  <MaterialCommunityIcons name="walk" color={'blue'} size={20} style={{marginRight:5}}/>
+                  <Text>{profile === 'walking' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
+                </Pressable>
+                {profile === 'walking' && <View style={styles.highlightedTab} />}
+              </View>
+            </View>     
+          </View>
+        ) : (
+          <View>
+            <Pressable
+              style={{
+                alignSelf:'flex-end', 
+                borderRadius: 20, 
+                borderColor:'red', 
+                borderStyle: 'solid', 
+                borderWidth: 1
+              }}
+              onPressOut={() => {
+                bottomSheetRef.current.collapse();
+              }}
+              /*TODO:  turn this and other variants into a reuseable function */
+              onPress={() => {
+                setTimeout(() => {
+                  setShowingReviews(() => {
+                    bottomSheetRef.current.snapToIndex(2, animationConfigs);
+                    return false
+                  });
+                }, 600)
+              }}
+            >
+              <AntDesign name="close" color={'red'} size={20} />
+            </Pressable>
+            <Text style={{fontSize: 22}}>Reviews</Text>
+          </View>
+        )}
       </View>
-    </View>
-  )
+    )
+  }
   
   
   function minuteCalc(num: number)  {
@@ -282,6 +359,8 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           key={destination.id}
           onPress={() => {
             setCameraLocation([item.longitude, item.latitude]);
+            setShowingReviews(item.id); 
+            console.log(showingReviews)
           }}
         >
           {/*TODO: Add images of places*/}
@@ -310,18 +389,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               borderRadius: 40 
             }}
           >
-            <TextInput 
-              style={{ flex: 1, padding: 10 }}
-              placeholder='Write a review'
-              value={revInput}
-              onChangeText={(text)=> {
-                setRevInput(text)
-              }}
-              onSubmitEditing={(text) => {
-                //console.log(auth().currentUser?.providerData)
-                genReview(text.nativeEvent.text, item.id)
-              }}  
-            />
+            
         </TouchableOpacity>
           
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
@@ -428,6 +496,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             }}
             onPressOut={() => {
               bottomSheetRef.current.collapse();
+              
             }}
             onPress={() => {
               setTimeout(() => {
@@ -500,7 +569,13 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             
           </View>
         </View>
-      ) :
+      ): showingReviews ? (
+        <BottomSheetFlatList
+          data={reviews}
+          renderItem={({ item }) => <RenderReview item={item} destID={showingReviews} users={fbUsers}/>}
+          ListHeaderComponent={renderHeader}
+        />
+      ):
       gettingDirections ? (
         <BottomSheetFlatList
           data={mapBoxJson.routes[0].legs[0].steps}

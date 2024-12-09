@@ -21,7 +21,6 @@ export default function LoginPage() {
         setUserData={setUserData}
         setLoggedIn={setLoggedIn}
       />
-      
     </GestureHandlerRootView>
   )
 }
