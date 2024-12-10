@@ -2,6 +2,7 @@ import { genReview } from "@/src/components/GenData";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TextInput, Text, FlatList, View, Image } from "react-native";
 
+import firestore from '@react-native-firebase/firestore';
 import { Rating } from '@kolking/react-native-rating';
 import { Light } from "@rnmapbox/maps";
 
@@ -51,19 +52,31 @@ const WriteReview = (item) => {
 
 }
 
-export const RenderReview = ({ item, destID, users }) => {
+const querryUser = () => {
+  firestore()
+    .collection('users')
+    .onSnapshot(querySnapshot => {
+      const users: ((prevState: never[]) => never[]) | { key: string }[] = [];
+
+      querySnapshot.forEach(documentSnapshot => {
+        users.push({
+          ...documentSnapshot.data(),
+          key: documentSnapshot.id,
+        });
+      });
+    });   
+}
+
+export const RenderReview = ({ item, destID }) => {
   
   if(item.locationID == destID){
     return(
       <View
         style={{
           padding: 10,
-
         }}
       >
-        <View
-          
-        >
+        <View>
           <Text style={{fontSize:18}}>{item.user}</Text>
         </View>
         <Rating
@@ -77,7 +90,8 @@ export const RenderReview = ({ item, destID, users }) => {
         />
         <Text style={{fontSize:16, fontWeight:400}}>{item.content}</Text>
         <Text style={{fontSize:14, fontWeight:300}}>
-          Created at: 
+          Created at:
+           
           {item.createdAt.toDate()
             .toLocaleDateString('en-US', {
               year: 'numeric',

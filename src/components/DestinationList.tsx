@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert, RefreshControl, TextInput } from 'react-native';
 import * as turf from '@turf/turf'
-import SearchFilters from './SearchFilters';
 import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
-import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AntDesign, MaterialCommunityIcons, MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
 import { BottomSheetDefaultFooterProps } from '@gorhom/bottom-sheet/lib/typescript/components/bottomSheetFooter/types';
-import auth from '@react-native-firebase/auth';
-import WriteReview, { RenderReview } from '../app/(screens)/Details';
+import { Rating } from '@kolking/react-native-rating';
 import firestore from '@react-native-firebase/firestore';
+
+import SearchFilters from './SearchFilters';
+import WriteReview, { RenderReview } from '../app/(screens)/Details';
+import { CloseButton } from './CloseButton';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit, setPage, isSearching}) => {
   const bottomSheetRef = useRef(null);
@@ -48,25 +50,10 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     return () => subscriber();
   }, []);
 
-  useEffect(() => {
-    const subscriber = firestore()
-      .collection('users')
-      .onSnapshot(querySnapshot => {
-        const users: ((prevState: never[]) => never[]) | { key: string }[] = [];
-  
-        querySnapshot.forEach(documentSnapshot => {
-          users.push({
-            ...documentSnapshot.data(),
-            key: documentSnapshot.id,
-          });
-        });
-        setFbUsers(users);
-        //console.log(fbUsers)
-      });
-      
-    // Unsubscribe from events when no longer in use
-    return () => subscriber();
-  }, []);
+  {/* 
+    
+  */
+  }
 
 
   const filteredDestinations = destination.filter(item => {
@@ -187,7 +174,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                 }, 600)
               }}
             >
-              <AntDesign name="close" color={'red'} size={20} />
+              <CloseButton />
             </Pressable>
             <Text style={{fontSize: 22}}>Drive</Text>
             <View
@@ -270,7 +257,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                 }, 600)
               }}
             >
-              <AntDesign name="close" color={'red'} size={20} />
+              <CloseButton />
             </Pressable>
             <Text style={{fontSize: 22}}>Reviews</Text>
           </View>
@@ -352,6 +339,10 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     }
 
     const calculatedDistance = turf.distance(to, from, options);
+
+    //TODO: add actual review fucntionality
+    const placeholderRatingValue = (Math.random() * 4) + 1
+    const placeholderIconRandomizer = (Math.random() * 1) 
     
     return(
       <View key={item.id} style={styles.resultContainer}>
@@ -361,21 +352,71 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             setCameraLocation([item.longitude, item.latitude]);
             setShowingReviews(item.id); 
             console.log(showingReviews)
+            
           }}
         >
           {/*TODO: Add images of places*/}
           <Text style={styles.resultName}>{item.name}</Text>
-          <Text style={styles.line}>Rating: {
-            item.upvote - item.downvote > 0 
-            ? `${item.upvote - item.downvote}`
-            :item.upvote - item.downvote < 0
-            ? `${item.upvote - item.downvote}`
-            : '0'
-          }
-          </Text>     
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              gap: 5
+            }}
+          >
+            <Text>{placeholderRatingValue.toFixed(1)}</Text>
+            <Rating 
+              disabled={true}
+              size={10} 
+              rating={placeholderRatingValue}
+              scale={1.1}
+              style={{
+                paddingBottom: 5
+              }}
+            />
+          </View>
           <View>
-            <Text style={styles.line}>Unisex: {item.unisex ? 'Yes' : 'No'}</Text>
-            <Text style={styles.line}>ADA Accessible: {item.accessible ? 'Yes' : 'No'}</Text>
+            <View
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                gap: 5
+              }}
+            >
+              <MaterialCommunityIcons 
+                name="wheelchair-accessibility" 
+                color={'black'} 
+                size={item.accessible ? 20: 0}
+                disabled={true}
+              />
+              {/*
+                this is currently random; refuge doesnt have this parameter
+                TODO:Add custom implementation for filter
+              */}
+              <MaterialIcons
+                name="family-restroom" 
+                color={'black'} 
+                size={placeholderIconRandomizer > 0.7 ? 20: 0}
+                disabled={false}
+                style={{
+                  alignItems:'center'
+                }}
+              />
+
+              {item.unisex ? (
+                <FontAwesome6 
+                name="restroom"
+                color={'black'} 
+                size={15}
+                iconStyle={{
+                  alignItems:'center'
+                }}
+                />
+              ):(
+                <></>
+              )}
+              
+            </View>
             <Text style={styles.line}>Changing Table: {item.changing_table ? 'Yes' : 'No'}</Text>
           </View>
           <Text style={styles.line}>Comment: {item.comment}</Text>
@@ -389,7 +430,6 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               borderRadius: 40 
             }}
           >
-            
         </TouchableOpacity>
           
           <Text>Distance: {calculatedDistance.toFixed(2)} miles</Text>
@@ -550,7 +590,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               }, 600)
             }}
           >
-            <AntDesign name="close" color={'red'} size={20} />
+            <CloseButton />
           </Pressable>
           <Pressable
             style={styles.directTab}
@@ -572,7 +612,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
       ): showingReviews ? (
         <BottomSheetFlatList
           data={reviews}
-          renderItem={({ item }) => <RenderReview item={item} destID={showingReviews} users={fbUsers}/>}
+          renderItem={({ item }) => <RenderReview item={item} destID={showingReviews}/>}
           ListHeaderComponent={renderHeader}
         />
       ):
