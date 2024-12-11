@@ -21,7 +21,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const [fbUsers, setFbUsers] = useState()
   const [reviews, setReviews] = useState([]);
   const [showingReviews, setShowingReviews] = useState(false);
-  
+  const [isPressing, setPressing] = useState(false);
 
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
@@ -50,15 +50,10 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     return () => subscriber();
   }, []);
 
-  {/* 
-    
-  */
-  }
-
-
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
     const isUnisex = searchUnisex ? item.unisex : true;
+    //TODO: add changing table filter
     if (!searchContent.current) {
       console.log('search undefined')
       return isAdaCompliant && isUnisex
@@ -155,13 +150,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         {gettingDirections ? (
           <View>
             <Pressable
-              style={{
-                alignSelf:'flex-end', 
-                borderRadius: 20, 
-                borderColor:'red', 
-                borderStyle: 'solid', 
-                borderWidth: 1
-              }}
+              style={
+                ({pressed}) => [
+                  {backgroundColor: pressed ? '#999' : '#ddd'}, 
+                  styles.closeContainer
+                ]
+              }
               onPressOut={() => {
                 bottomSheetRef.current.collapse();
               }}
@@ -237,13 +231,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         ) : (
           <View>
             <Pressable
-              style={{
-                alignSelf:'flex-end', 
-                borderRadius: 20, 
-                borderColor:'red', 
-                borderStyle: 'solid', 
-                borderWidth: 1
-              }}
+              style={
+                ({pressed}) => [
+                  {backgroundColor: pressed ? '#999' : '#ddd'}, 
+                  styles.closeContainer
+                ]
+              }
               onPressOut={() => {
                 bottomSheetRef.current.collapse();
               }}
@@ -415,9 +408,15 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               ):(
                 <></>
               )}
-              
+              {item.changing_table ? (
+                <MaterialCommunityIcons 
+                  name="human-baby-changing-table"
+                />
+              ): (
+                <></>
+              )}
             </View>
-            <Text style={styles.line}>Changing Table: {item.changing_table ? 'Yes' : 'No'}</Text>
+            
           </View>
           <Text style={styles.line}>Comment: {item.comment}</Text>
           <TouchableOpacity 
@@ -571,13 +570,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
             <Text>Title</Text>
           </View>
           <Pressable
-            style={{
-              alignSelf:'flex-end', 
-              borderRadius: 20, 
-              borderColor:'red', 
-              borderStyle: 'solid', 
-              borderWidth: 1
-            }}
+            style={
+              ({pressed}) => [
+                {backgroundColor: pressed ? '#999' : '#ddd'}, 
+                styles.closeContainer
+              ]
+            }
             onPressOut={() => {
               bottomSheetRef.current.collapse();
             }}
@@ -713,6 +711,21 @@ const styles = StyleSheet.create({
   },
   directContainer: {
     flexDirection: 'column'
+  },
+  closeContainer: {
+    alignSelf:'flex-end',
+    padding: 3,
+    opacity: .5, 
+    borderRadius: 20, 
+    //borderColor:'lightgray', 
+    //borderStyle: 'solid', 
+    //borderWidth: 1
+  }, 
+  pressedCloseContainer: {
+    alignSelf:'flex-end',
+    padding: 3,
+    opacity: 1, 
+    borderRadius: 20,
   }
 })
 export default DestinationList;
