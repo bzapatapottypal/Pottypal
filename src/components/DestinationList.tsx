@@ -9,7 +9,7 @@ import firestore from '@react-native-firebase/firestore';
 
 import SearchFilters from './SearchFilters';
 import WriteReview, { RenderReview } from '../app/(screens)/Details';
-import { CloseButton } from './CloseButton';
+import { CloseButton, DirectButton } from './ButtonIcons';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit, setPage, isSearching}) => {
   const bottomSheetRef = useRef(null);
@@ -175,7 +175,10 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               style={{
                 justifyContent: 'space-between',
                 flexDirection: 'row',
-                marginTop: 10
+                marginVertical: 10,
+                //paddingBottom: 10,
+                borderBottomColor: '#aaa',
+                borderBottomWidth: 1
               }}
             >
               <View style={styles.directContainer}>
@@ -189,7 +192,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                     fetchDirections('driving', location, [currentDest.longitude, currentDest.latitude]);
                   }}
                 >
-                  <AntDesign name="car" color={'blue'} size={20} style={{marginRight:5}}/>
+                  <DirectButton
+                    name={'car'}
+                  />
                   <Text>{profile === 'driving' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
                 </Pressable>
                 {profile === 'driving' && <View style={styles.highlightedTab} />}
@@ -205,7 +210,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                     fetchDirections('cycling', location, [currentDest.longitude, currentDest.latitude]);
                   }}
                 >
-                  <MaterialCommunityIcons name="bike" color={'blue'} size={20} style={{marginRight:5}}/>
+                  <DirectButton
+                    name={'bike'}
+                  />
                   <Text>{profile === 'cycling' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
                 </Pressable>
                 {profile === 'cycling' && <View style={styles.highlightedTab} />}
@@ -221,7 +228,9 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
                     fetchDirections('walking', location, [currentDest.longitude, currentDest.latitude]);
                   }}
                 >
-                  <MaterialCommunityIcons name="walk" color={'blue'} size={20} style={{marginRight:5}}/>
+                  <DirectButton
+                    name={'walk'}
+                  />
                   <Text>{profile === 'walking' && minuteCalc(mapBoxJson.routes[0].legs[0].duration)}</Text>
                 </Pressable>
                 {profile === 'walking' && <View style={styles.highlightedTab} />}
@@ -462,7 +471,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
         style={{
           flex: 1,
           flexDirection: 'column',
-          marginBottom: 5
+          marginBottom: 5,
         }}
         key={item.index}
       >
@@ -701,9 +710,10 @@ const styles = StyleSheet.create({
   directTab: {
     flexDirection: 'row',
     width: 80,
+    paddingBottom:10
   },
   highlightedTab: {
-    backgroundColor: 'blue',
+    backgroundColor: '#4b72f7',
     width: '70%',
     height: 5,
     borderRadius: 50,
