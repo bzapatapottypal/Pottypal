@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Pressable, View, Text, SafeAreaView } from "react-native";
 import { GestureHandlerRootView, TextInput } from "react-native-gesture-handler";
 import firestore, {getDoc} from '@react-native-firebase/firestore';
-import FirebaseSignIn from "../../components/GoogleSignIn"
+import FirebaseSignIn from "../../components/FirebaseSignIn"
 
-export default function LoginPage() {
+export default function LoginPage(testGlobal, setTestGlobal) {
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -20,6 +20,8 @@ export default function LoginPage() {
         setUser={setUser}
         setUserData={setUserData}
         setLoggedIn={setLoggedIn}
+        testGlobal={testGlobal}
+        setTestGlobal={setTestGlobal}
       />
     </GestureHandlerRootView>
   )

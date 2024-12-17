@@ -1,4 +1,4 @@
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Stack, Tabs } from "expo-router";
 
 
@@ -17,10 +17,9 @@ export default function RootLayout() {
         name="main-map"
         options={{
           title: 'Map',
-          tabBarIcon: ({ color }) => <FontAwesome size={28} name="cog" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons size={28} name="map-marker" color={color} />,
           headerShown: false
         }}
-        
       />
     </Tabs>
   );

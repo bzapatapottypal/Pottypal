@@ -11,7 +11,7 @@ import {
   statusCodes
 } from '@react-native-google-signin/google-signin';
 
-export default function FirebaseSignIn({user, setUser, setUserData, setLoggedIn}) {
+export default function FirebaseSignIn({user, setUser, setUserData, setLoggedIn, testGlobal, setTestGlobal}) {
   const [isInProgress, setInProgress] = useState(false)
   
   const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
@@ -120,6 +120,13 @@ export default function FirebaseSignIn({user, setUser, setUserData, setLoggedIn}
           }}
         >
           <Text>Log Out</Text>
+        </Pressable>
+        <Pressable
+          onPress={() =>
+            console.log(testGlobal)
+          }
+        >
+          <Text>global test</Text>
         </Pressable>
       </View>
     )

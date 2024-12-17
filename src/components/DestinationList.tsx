@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Share, Alert, RefreshControl, TextInput } from 'react-native';
 import * as turf from '@turf/turf'
 import BottomSheet, { BottomSheetFlatList, BottomSheetFooter, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet'
@@ -8,8 +8,9 @@ import { Rating } from '@kolking/react-native-rating';
 import firestore from '@react-native-firebase/firestore';
 
 import SearchFilters from './SearchFilters';
-import WriteReview, { RenderReview } from '../app/(screens)/Details';
+import WriteReview, { RenderReview } from './Details';
 import { CloseButton, DirectButton } from './ButtonIcons';
+import { useFirebase } from '../app/contexts/FirebaseContext';
 
 const DestinationList = ({destination, location, setCameraLocation, loadMoreDestinations, searchADA, searchUnisex, handleFilter, fitCameraBounds, setStepIndex, gettingDirections, mapBoxJson, setNavigating, setGettingDirections, setMapBoxJson, setRoute, navigating, profile, setProfile, refreshingBL, fetchType, searchContent, searchSubmit, setPage, isSearching}) => {
   const bottomSheetRef = useRef(null);
@@ -18,11 +19,12 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
   const [drivingDist, setDrivingDist] = useState('0 miles');
   const [currentETA, setCurrentETA] = useState('00:00');
   const [overview, openOverview] = useState(false)
-  const [fbUsers, setFbUsers] = useState()
-  const [reviews, setReviews] = useState([]);
+  const [fbUsers, setFbUsers] = useState();
   const [showingReviews, setShowingReviews] = useState(false);
   const [isPressing, setPressing] = useState(false);
 
+  const { reviews, setReviews } = useFirebase();
+  
   const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
     overshootClamping: true,
@@ -31,24 +33,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     stiffness: 500,
   });
   
-  useEffect(() => {
-    const subscriber = firestore()
-      .collection('reviews')
-      .onSnapshot(querySnapshot => {
-        const reviews: ((prevState: never[]) => never[]) | { key: string }[] = [];
   
-        querySnapshot.forEach(documentSnapshot => {
-          reviews.push({
-            ...documentSnapshot.data(),
-            key: documentSnapshot.id,
-          });
-        });
-        setReviews(reviews);
-      });
-  
-    // Unsubscribe from events when no longer in use
-    return () => subscriber();
-  }, []);
 
   const filteredDestinations = destination.filter(item => {
     const isAdaCompliant = searchADA ? item.accessible : true;
@@ -349,12 +334,11 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     return(
       <View key={item.id} style={styles.resultContainer}>
         <TouchableOpacity
-          key={destination.id}
+          key={item.id}
           onPress={() => {
             setCameraLocation([item.longitude, item.latitude]);
             setShowingReviews(item.id); 
-            console.log(showingReviews)
-            
+            //console.log(showingReviews)
           }}
         >
           {/*TODO: Add images of places*/}
@@ -535,13 +519,19 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
           }}
         >
           <Pressable
-            style={{
-              alignSelf:'flex-start', 
-              borderRadius: 50, 
-              borderColor: 'black', 
-              borderStyle: 'solid', 
-              borderWidth: 1
-            }}
+            style={
+              ({pressed}) => [
+                {backgroundColor: pressed ? '#999' : 'transparent'}, 
+                {
+                  alignSelf:'flex-start', 
+                  padding: 5,
+                  borderRadius: 50, 
+                  borderColor: '#000', 
+                  borderStyle: 'solid', 
+                  borderWidth: 1,
+                }
+              ]
+            }
             onPressOut={() => {
               bottomSheetRef.current.collapse();
               
@@ -555,7 +545,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
               }, 600)
             }}
           >
-            <AntDesign name="close" color={'black'} size={50} />
+            <AntDesign name="close" color={'#000'} size={40} />
           </Pressable>
           <View style={{alignItems: 'center'}}>
             <Text style={{fontSize: 22}}>{travelTime}</Text>
