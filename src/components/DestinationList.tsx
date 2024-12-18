@@ -40,7 +40,7 @@ const DestinationList = ({destination, location, setCameraLocation, loadMoreDest
     const isUnisex = searchUnisex ? item.unisex : true;
     //TODO: add changing table filter
     if (!searchContent.current) {
-      console.log('search undefined')
+      //console.log('search undefined')
       return isAdaCompliant && isUnisex
     }
     const isSearchName = isSearching && item.name.toLowerCase().includes(searchContent.current.toLowerCase())

@@ -6,17 +6,15 @@ import Mapbox from '@rnmapbox/maps';
 import * as turf from '@turf/turf';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Speech from 'expo-speech'
-import * as Location from 'expo-location'; 
+
 
 import Map from '@/src/components/Map';
 import DestinationList from '@/src/components/DestinationList';
 import SearchFilters from '@/src/components/SearchFilters';
+import { useFirebase } from '../contexts/FirebaseContext';
 
 export default function MainMap() {
-  const [location, setLocation] = useState(null);
-  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [destination, setDestination] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cameraLocation, setCameraLocation] = useState([0, 0]);
   const [page, setPage] = useState(1);
@@ -34,6 +32,9 @@ export default function MainMap() {
   const [fetchType, setFetchType] = useState('location');
   const [isSearching, setIsSearching] = useState(false);
   const [input, onInput] = useState('')
+  const {location, setLocation} = useFirebase();
+  const {hasLocationPermission, setHasLocationPermission} = useFirebase();
+  const {isLoading, setIsLoading} = useFirebase();
 
   const maneuverRef = useRef({
     maneuverDist: 0,
@@ -48,30 +49,7 @@ export default function MainMap() {
 
   const REFUGE_ENDPOINT = process.env.EXPO_PUBLIC_REFUGE_ENDPOINT;
   
-  useEffect(() => {
-    let subscription: { remove: any; }
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('This app needs location permissions. Please enable in the settings.');
-        return;
-      } try {
-        subscription = await Location.watchPositionAsync(
-          { 
-            accuracy: Location.Accuracy.High, 
-            timeInterval: 6000, 
-            distanceInterval: 20 
-          },
-          handleUserLocationUpdate
-        );
-      } catch (error) {
-        setErrorMsg('Could not get the location. Please try again.');
-        //TODO: ADD RELOAD BUTTON
-      } finally {
-      }
-      return () => subscription.remove();
-    })();
-  }, [])
+  
 
   useEffect(() => {
     if(!navigating){
@@ -116,12 +94,7 @@ export default function MainMap() {
     setCameraLocation(location)
   },[location])
 
-  const handleUserLocationUpdate = (location: { coords: { longitude: any; latitude: any; }; }) => {
-    const coords = [location.coords.longitude, location.coords.latitude]
-    setLocation(coords);
-    setHasLocationPermission(true);
-    setIsLoading(false);
-  };
+  
 
   const initialDirection = (currentStep: { maneuver: { instruction: string; }; }) => {
     setStepIndex(1);
