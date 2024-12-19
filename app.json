@@ -17,6 +17,7 @@
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,9 +28,14 @@
       ],
       "package": "com.romanbdass.firebasetest"
     },
+    "androidStatusBar": {
+      "backgroundColor": "#000",
+      "translucent": false
+    },
     "web": {
       "bundler": "metro",
       "output": "static",
+      //TODO: add proper favicon
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -51,7 +57,12 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
         }
-      ]
+      ],
+      [
+        "@react-native-google-signin/google-signin"
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
     ],
     "experiments": {
       "typedRoutes": true
